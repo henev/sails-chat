@@ -1,0 +1,13 @@
+<div class="well">
+    <h2>{{ room.name }}</h2>
+    <h4>{{ room.id }}</h4>
+
+    <p ng-repeat="message in messages">{{ message.text }}</p>
+    <hr>
+    <form ng-submit="createMessage()">
+        <div class="form-group">
+            <input ng-model="text" class="form-control" type="text" placeholder="Enter your message here">
+        </div>
+        <input type="submit" class="btn btn-default" ng-disabled="!text" value="Submit">
+    </form>
+</div>

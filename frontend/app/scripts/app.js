@@ -8,4 +8,4 @@
  *
  * Main module of the application.
  */
-angular.module('sailsChatApp', ['ui.router']);
+angular.module('sailsChatApp', ['ui.router', 'satellizer', 'toastr', 'ngAnimate']);

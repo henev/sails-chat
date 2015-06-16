@@ -27,6 +27,9 @@ module.exports = function(config) {
       'bower_components/bootstrap/dist/js/bootstrap.js',
       'bower_components/angular-ui-router/release/angular-ui-router.js',
       'bower_components/sails.io.js/dist/sails.io.js',
+      'bower_components/satellizer/satellizer.js',
+      'bower_components/angular-toastr/dist/angular-toastr.tpls.js',
+      'bower_components/angular-animate/angular-animate.js',
       'bower_components/angular-mocks/angular-mocks.js',
       // endbower
       "app/scripts/**/*.js",

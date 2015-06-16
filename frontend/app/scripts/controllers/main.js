@@ -7,49 +7,23 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('MainCtrl', function ($scope, $http, API_URL) {
-    $scope.users = [];
-    $scope.rooms = [];
+angular.module('sailsChatApp').controller('MainCtrl', function ($scope, $state, $auth) {
+    $scope.login = function() {
+        $auth.login({ name: $scope.log.name, password: $scope.log.password })
+            .then(function() {
+                $state.go('rooms');
+            })
+            .catch(function(response) {
 
-    //io.socket.on('user', function(event) {
-    //    console.log(event);
-    //    $scope.$apply(function() {
-    //        io.socket.get(API_URL + 'users', function(data, res) {
-    //            //console.log(data);
-    //            //console.log(res);
-    //            $scope.$apply(function() {
-    //                $scope.users = data;
-    //            });
-    //        });
-    //    });
-    //});
-    //
-    //io.socket.get(API_URL + 'users', function(data, res) {
-    //    //console.log(data);
-    //    //console.log(res);
-    //    $scope.$apply(function() {
-    //        $scope.users = data;
-    //    });
-    //});
-
-    io.socket.on('room', function(event) {
-        console.log(event);
-        $scope.$apply(function() {
-            io.socket.get(API_URL + 'rooms', function(data, res) {
-                //console.log(data);
-                //console.log(res);
-                $scope.$apply(function() {
-                    $scope.rooms = data;
-                });
             });
-        });
-    });
+    };
 
-    io.socket.get(API_URL + 'rooms', function(data, res) {
-        //console.log(data);
-        //console.log(res);
-        $scope.$apply(function() {
-            $scope.rooms = data;
+    $scope.register = function() {
+        $auth.signup({
+            name: $scope.reg.name,
+            password: $scope.reg.password
+        }).then(function() {
+            $state.go('rooms');
         });
-    });
+    };
 });

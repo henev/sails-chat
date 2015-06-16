@@ -1,0 +1,17 @@
+<div class="well">
+    <h3>Available rooms</h3>
+    <div ng-repeat="room in rooms"><p class="btn btn-link" ng-click="enterRoom(room.id)">{{ room.name }}</p></div>
+    <hr>
+    <form ng-submit="createRoom()">
+        <div class="form-group">
+            <label class="control-label">Create room</label>
+            <input class="form-control" type="text" ng-model="roomName" placeholder="Enter room name">
+        </div>
+        <input type="submit" class="btn btn-default" value="Create room">
+    </form>
+</div>
+
+<div class="well">
+    <h3>Online users</h3>
+    <p ng-repeat="user in users">{{ user.name }}</p>
+</div>

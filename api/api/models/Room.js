@@ -8,7 +8,15 @@
 module.exports = {
 
     attributes: {
-        name: 'string'
+        name: 'string',
+        users: {
+            collection: 'user',
+            via: 'rooms'
+        },
+        messages: {
+            collection: 'message'
+        }
     }
+
 };
 
