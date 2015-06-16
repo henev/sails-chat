@@ -51,15 +51,20 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state,
         });
     });
 
-    io.socket.on('toast', function(user) {
-        toastr.info(user.name + ' joined the ' + roomName + ' room', 'Information');
-    });
+    var toast = function(msg) {
+        toastr.info(msg, 'Information');
+    };
+
+    io.socket.on('toast', toast);
+
+    //io.socket._raw.removeListener('toast', a);
 
     io.socket.on('refresh', function() {
         io.socket.post(API_URL + 'room/users', {
             roomName: roomName
         }, function(data, res) {
             $scope.$apply(function() {
+                console.log(data);
                 $scope.users = data;
             });
         });
@@ -85,4 +90,5 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state,
     }, function(data, res) {
         currentUser = data;
     });
+
 });

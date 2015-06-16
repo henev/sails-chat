@@ -15,22 +15,54 @@ module.exports = {
         var payload = jwt.decode(token, config.TOKEN_SECRET);
         var userId = payload.sub;
 
-        User.findOne({ id: userId }, function(err, foundUser) {
-            if (err) return res.status(401).send({message: 'Authorization failed'});
+        User.findOne({id: userId})
+            .populate('rooms')
+            .exec(function(err, foundUser) {
+                if (err) return res.status(401).send({message: 'Authorization failed'});
 
-            if (foundUser) {
-                foundUser.socket = socket.id;
-                foundUser.save(function(err, user) {
-                    sails.sockets.join(socket, roomName);
-                    sails.sockets.broadcast(roomName, 'toast', user, socket);
-                    sails.sockets.broadcast(roomName, 'refresh', null);
+                if (foundUser) {
+                    // Save the socket to the user in db
+                    foundUser.socket = socket.id;
+                    foundUser.save(function(err, user) {
+                        // Joins/Subscribes user to the room
+                        sails.sockets.join(socket, roomName);
+                        // Broadcast a msg to other users in that room notifying for the new user
+                        sails.sockets.broadcast(roomName, 'toast', user.name + ' has entered the ' + roomName + ' room', socket);
+                        // Refreshes every subscriber's user view
+                        sails.sockets.broadcast(roomName, 'refresh', null);
 
-                    res.status(200).json(user);
-                });
-            } else {
-                res.status(401).send({message: 'Authorization failed'});
-            }
-        });
+                        // Create / find room and add the user to it if he is not already in
+                        Room.findOne({name: roomName}, function(err, foundRoom) {
+                            if (!foundRoom) {
+                                // Create room and add user
+                                Room.create({
+                                    name: roomName
+                                }).exec(function(err, room) {
+                                    room.users.add(user.id);
+                                    room.save();
+                                });
+                            } else {
+                                // Check if user is already in (subscribed to) room
+                                var userIsInRoom = false;
+                                foundUser.rooms.forEach(function(room) {
+                                    if (room.id === foundRoom.id) {
+                                        userIsInRoom = true;
+                                    }
+                                });
+                                // Adds (subscribes) him if he is not in the room
+                                if (!userIsInRoom) {
+                                    foundRoom.users.add(user.id);
+                                    foundRoom.save();
+                                }
+                            }
+                        });
+
+                        res.status(200).json(user);
+                    });
+                } else {
+                    res.status(401).send({message: 'Authorization failed'});
+                }
+            });
     },
 
     leave: function(req, res) {
@@ -46,12 +78,16 @@ module.exports = {
         var roomName = req.body.roomName;
         var socket = req.socket;
 
+        // get subscribed sockets to the room
         var sockets = sails.sockets.subscribers(roomName);
+        // Remove the user that is sending the request.
+        // We don't want the user that is sending the request to see himself.
         var index = sockets.indexOf(socket.id.toString());
         if (index > -1) {
             sockets.splice(index, 1);
         }
 
+        // Get all subscribers in the room by sockets
         User.find({socket: sockets}, function(err, users) {
             if (err) return res.status(500).end();
 

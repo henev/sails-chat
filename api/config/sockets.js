@@ -121,13 +121,20 @@ module.exports.sockets = {
      *                                                                          *
      ***************************************************************************/
     afterDisconnect: function (session, socket, cb) {
-        //console.log(session);
-        //User.findOne({socket: socket.id}, function(err, user) {
-        //    if (user) {
-        //        sails.sockets.blast('toast', user);
-        //    }
-        //});
-        sails.sockets.blast('refresh', null);
+        User.findOne({socket: socket.id})
+            .populate('rooms')
+            .exec(function(err, user) {
+                if (user) {
+                    user.rooms.forEach(function(room) {
+                        sails.sockets.broadcast(room.name, 'toast', user.name + ' has left the ' + room.name + ' room');
+                        sails.sockets.broadcast(room.name, 'refresh', null);
+                        room.users.remove(user.id);
+                        room.save();
+                    });
+                } else {
+                    console.log('User not found???');
+                }
+            });
 
         return cb();
     },

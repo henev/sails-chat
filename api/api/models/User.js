@@ -15,6 +15,13 @@ module.exports = {
         rooms: {
             collection: 'room',
             via: 'users'
+        },
+
+        toJSON: function() {
+            var user = this.toObject();
+            delete user.password;
+
+            return user;
         }
     },
 

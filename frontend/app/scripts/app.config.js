@@ -31,9 +31,10 @@ angular.module('sailsChatApp')
     .constant('API_URL', 'http://localhost:1337/')
 
     .run(function($rootScope, API_URL) {
+        // TODO: Check state change events and pick the right one
         $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams){
             console.log(fromState);
-            if (fromState.name === 'rooms' || fromState.name === '') {
+            if (fromState.name === 'rooms') {
                 io.socket.post(API_URL + 'rooms/leaveGlobal', {}, function(data, res) { });
             }
         });
