@@ -2,8 +2,17 @@
     <h2>{{ room.name }}</h2>
     <h4>{{ room.id }}</h4>
 
-    <p ng-repeat="message in messages">{{ message.text }}</p>
     <hr>
+
+    <h5>Users in the room</h5>
+    <p ng-repeat="user in users">{{ user.name }}</p>
+
+    <hr>
+
+    <p ng-repeat="message in messages">{{ message.text }}</p>
+
+    <hr>
+
     <form ng-submit="createMessage()">
         <div class="form-group">
             <input ng-model="text" class="form-control" type="text" placeholder="Enter your message here">

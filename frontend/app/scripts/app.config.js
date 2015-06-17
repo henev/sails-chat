@@ -19,7 +19,7 @@ angular.module('sailsChatApp')
                 controller: 'RoomsCtrl'
             })
             .state('room', {
-                url: '/room?id',
+                url: '/room?name',
                 templateUrl: '/views/room.html',
                 controller: 'RoomCtrl'
             });
@@ -30,12 +30,24 @@ angular.module('sailsChatApp')
 
     .constant('API_URL', 'http://localhost:1337/')
 
-    .run(function($rootScope, API_URL) {
-        // TODO: Check state change events and pick the right one
+    .run(function($rootScope, $auth, $state, socketEvents, API_URL) {
         $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams){
-            console.log(fromState);
-            if (fromState.name === 'rooms') {
-                io.socket.post(API_URL + 'rooms/leaveGlobal', {}, function(data, res) { });
+            socketEvents.remove();
+
+            if (fromState.name === 'room') {
+                io.socket.post(API_URL + 'room/leave', { roomName: fromParams.name }, function(data, res) { });
+            }
+
+            if (toState.name === 'main' && $auth.isAuthenticated()) {
+                event.preventDefault();
+                $state.go('rooms');
+            }
+
+            if (toState.name !== 'main' && !$auth.isAuthenticated()) {
+                io.socket.post(API_URL + 'room/leave', { roomName: 'global' }, function(data, res) { });
+
+                event.preventDefault();
+                $state.go('main');
             }
         });
     });

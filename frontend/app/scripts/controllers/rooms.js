@@ -7,34 +7,21 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state, $window, toastr, API_URL) {
+angular.module('sailsChatApp').controller('RoomsCtrl', function ($rootScope, $scope, $state, $window, toastr, socketEvents, API_URL) {
     $scope.users = [];
     $scope.rooms = [];
-    var currentUser = {};
 
     var roomName = 'global';
 
-    //io.socket.on('user', function(event) {
-    //    console.log(event);
-    //    $scope.$apply(function() {
-    //        io.socket.get(API_URL + 'users', function(data, res) {
-    //            //console.log(data);
-    //            //console.log(res);
-    //            $scope.$apply(function() {
-    //                $scope.users = data;
-    //            });
-    //        });
-    //    });
-    //});
-    //
-    //io.socket.get(API_URL + 'user', function(data, res) {
-    //    //console.log(data);
-    //    //console.log(res);
-    //    $scope.$apply(function() {
-    //        $scope.users = data;
-    //    });
-    //});
+    // Add the io.socket.on event listeners
+    socketEvents.add();
 
+    // Watch for rootScope users change from socket refresh event
+    $rootScope.$on('refreshUsers-' + roomName, function(event, args) {
+        $scope.users = args;
+    });
+
+    // Bind event to room model to listen for room changes
     io.socket.on('room', function(event) {
         $scope.$apply(function() {
             io.socket.get(API_URL + 'room', function(data, res) {
@@ -45,50 +32,22 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state,
         });
     });
 
+    // Get all rooms and and subscribe the socket to their changes
     io.socket.get(API_URL + 'room', function(data, res) {
         $scope.$apply(function() {
             $scope.rooms = data;
         });
     });
 
-    var toast = function(msg) {
-        toastr.info(msg, 'Information');
+    // Enter a already created room or create a new one
+    $scope.enterRoom = function(name) {
+        $state.go('room', { name: name });
     };
 
-    io.socket.on('toast', toast);
-
-    //io.socket._raw.removeListener('toast', a);
-
-    io.socket.on('refresh', function() {
-        io.socket.post(API_URL + 'room/users', {
-            roomName: roomName
-        }, function(data, res) {
-            $scope.$apply(function() {
-                console.log(data);
-                $scope.users = data;
-            });
-        });
-    });
-
-    $scope.createRoom = function() {
-        io.socket.post(API_URL + 'room/create', { name: $scope.roomName }, function(data, res) {
-            $state.go('room', {
-                id: data.id
-            });
-        });
-    };
-
-    $scope.enterRoom = function(roomId) {
-        //io.socket.post(API_URL + 'room/');
-
-        $state.go('room', { id: roomId });
-    };
-
+    // Send user authentication to indicate user has joined the room
     io.socket.post(API_URL + 'room/join', {
         roomName: roomName,
         token: $window.localStorage.satellizer_token
-    }, function(data, res) {
-        currentUser = data;
-    });
+    }, function(data, res) { });
 
 });
