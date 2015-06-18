@@ -30,22 +30,21 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($rootScope, $sco
             $scope.room = data;
 
             // Get the messages for the room
-            io.socket.get(API_URL + 'message?room=' + $scope.room.id, function(data, res) {
-                $scope.$apply(function() {
+            $http.get(API_URL + 'message?room=' + $scope.room.id)
+                .success(function(data) {
                     $scope.messages = data;
                 });
-            });
         });
     });
 
-    io.socket.on('message', function(event) {
+    io.socket.on('room', function(event) {
+        console.log(event);
         // On message model change update the room messages
         $scope.$apply(function() {
-            io.socket.get(API_URL + 'message?room=' + $scope.room.id, function(data, res) {
-                $scope.$apply(function() {
+            $http.get(API_URL + 'message?room=' + $scope.room.id)
+                .success(function(data) {
                     $scope.messages = data;
                 });
-            });
         });
     });
 

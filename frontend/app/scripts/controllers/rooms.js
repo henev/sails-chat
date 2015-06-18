@@ -12,6 +12,8 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($rootScope, $sc
 
     // Bind event to room model to listen for room changes
     io.socket.on('room', function(event) {
+        console.log(event);
+
         $scope.$apply(function() {
             io.socket.get(API_URL + 'room', function(data, res) {
                 $scope.$apply(function() {

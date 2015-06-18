@@ -31,18 +31,24 @@ module.exports = {
                             .exec(function(err, room) {
                                 if (err) return res.status(500).send({message: 'Error creating message'});
 
-                                // Add the new message to the rooms collection of messages
-                                room.messages.add(msg.id);
-                                room.save(function(err, savedRoom) {
-                                    if (err) return res.status(500).send({message: 'Error creating message'});
+                                if (room) {
+                                    // Add the new message to the rooms collection of messages
+                                    room.messages.add(msg.id);
+                                    room.save(function(err, savedRoom) {
+                                        if (err) return res.status(500).send({message: 'Error creating message'});
 
-                                    // Publish to the sockets that a new message has been created
-                                    Message.publishCreate({
-                                        id: msg.id
+                                        // Publish to the sockets that a new message has been created
+                                        Room.publishAdd(
+                                            savedRoom.id,
+                                            'messages',
+                                            msg.id
+                                        );
+
+                                        res.status(200).end();
                                     });
-
-                                    res.status(200).end();
-                                });
+                                } else {
+                                    res.status(500).send({message: 'Error creating message'});
+                                }
                             });
                     });
                 } else {

@@ -39,7 +39,7 @@ module.exports = {
                                     room.save(function(err, savedRoom) {
                                         // Send a msg to all subscribers to room model to update their rooms
                                         Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
-                                        deferred.resolve();
+                                        deferred.resolve(savedRoom);
 
                                         res.status(200).json(savedRoom);
                                     });
@@ -52,7 +52,7 @@ module.exports = {
                                 if (!userIsInRoom) {
                                     foundRoom.users.add(user.id);
                                     foundRoom.save(function(err, savedRoom) {
-                                        deferred.resolve();
+                                        deferred.resolve(savedRoom);
 
                                         res.status(200).json(savedRoom);
                                     });
@@ -64,13 +64,24 @@ module.exports = {
                     res.status(401).send({message: 'Authorization failed'});
                 }
 
-                deferred.promise.then(function() {
+                deferred.promise.then(function(savedRoom) {
                     // Joins/Subscribes user to the room
                     sails.sockets.join(socket, roomName);
                     // Broadcast a msg to other users in that room notifying for the new user
                     sails.sockets.broadcast(roomName, 'toast', foundUser.name + ' has entered the ' + roomName + ' room', socket);
                     // Refreshes every subscriber's user view
                     sails.sockets.broadcast(roomName, 'refresh', roomName);
+
+                    var socketIsInRoomSubscribers = false;
+                    Room.subscribers(savedRoom).forEach(function(subscriber) {
+                        if (subscriber === socket) {
+                            socketIsInRoomSubscribers = true;
+                        }
+                    });
+                    if (!socketIsInRoomSubscribers) {
+                        Room.subscribe(socket, savedRoom);
+                    }
+                    //console.log(Room.subscribers(savedRoom)[0] === socket);
                 });
             });
     },
@@ -79,30 +90,39 @@ module.exports = {
         var roomName = req.body.roomName;
         var socket = req.socket;
 
-        sails.sockets.leave(socket, roomName);
-        sails.sockets.broadcast(roomName, 'refresh', roomName);
-
         Room.findOne({name: roomName})
             .populate('users', {socket: socket.id})
             .exec(function(err, room) {
                 if (err) return res.status(500).send({message: 'Problem with socket leaving the room'});
 
                 if (room) {
+                    var userId = false;
+
                     room.users.forEach(function(user) {
                         if (user.socket === socket.id) {
-                            room.users.remove(user.id);
-                            room.save();
-
-                            sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
+                            userId = user.id;
                         }
                     });
+
+                    if (userId) {
+                        // Unsubscribe the user from events changing the room or adding messages
+                        //Room.unsubscribe(socket, room);
+
+                        room.users.remove(userId);
+                        room.save(function(err, savedRoom) {
+                            sails.sockets.leave(socket, roomName);
+                            sails.sockets.broadcast(roomName, 'refresh', roomName);
+
+                            res.status(200).end();
+                        });
+                    } else {
+                        res.status(500).send('Error leaving the room');
+                    }
 
                 } else {
                     return res.status(404).send({message: 'The room has not been found'});
                 }
             });
-
-        res.status(200).end();
     },
 
     users: function(req, res) {
