@@ -28,31 +28,31 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($rootScope, $sco
     }, function(data, res) {
         $scope.$apply(function() {
             $scope.room = data;
+
+            // Get the messages for the room
+            io.socket.get(API_URL + 'message?room=' + $scope.room.id, function(data, res) {
+                $scope.$apply(function() {
+                    $scope.messages = data;
+                });
+            });
         });
     });
 
-    //io.socket.get(API_URL + 'messages?room=' + $scope.room.id, function(data, res) {
-    //    $scope.$apply(function() {
-    //        console.log(data);
-    //        $scope.messages = data;
-    //    });
-    //});
+    io.socket.on('message', function(event) {
+        // On message model change update the room messages
+        $scope.$apply(function() {
+            io.socket.get(API_URL + 'message?room=' + $scope.room.id, function(data, res) {
+                $scope.$apply(function() {
+                    $scope.messages = data;
+                });
+            });
+        });
+    });
 
-    //io.socket.on('message', function(event) {
-    //    $scope.$apply(function() {
-    //        io.socket.post(API_URL + 'messages', { room: $scope.room.id }, function(data, res) {
-    //            $scope.$apply(function() {
-    //                $scope.messages = data;
-    //            });
-    //        });
-    //    });
-    //});
-    //
-    //$scope.createMessage = function() {
-    //    io.socket.post(API_URL + 'messages/create', {
-    //        text: $scope.text, room: $scope.room.id
-    //    }, function(data, res) {
-    //        console.log('New message: ' + data.text);
-    //    });
-    //};
+    $scope.createMessage = function() {
+        io.socket.post(API_URL + 'message/create', {
+            text: $scope.text,
+            roomId: $scope.room.id
+        }, function(data, res) { });
+    };
 });

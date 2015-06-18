@@ -9,7 +9,7 @@
 
     <hr>
 
-    <p ng-repeat="message in messages">{{ message.text }}</p>
+    <p ng-repeat="message in messages">{{ message.owner.name }} - {{ message.text }} - <span ng-bind="message.updatedAt | date:'dd/MM/yy H:m'"></span></p>
 
     <hr>
 

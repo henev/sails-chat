@@ -9,7 +9,9 @@ module.exports = {
 
     attributes: {
         text: 'text',
-        owner: 'string',
+        owner: {
+            model: 'user'
+        },
         room: {
             model: 'room'
         }

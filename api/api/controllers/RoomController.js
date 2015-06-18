@@ -11,12 +11,9 @@ module.exports = {
     join: function(req, res) {
         var token = req.body.token;
         var roomName = req.body.roomName;
-        var globalRoom = 'global';
         var socket = req.socket;
-
         var payload = jwt.decode(token, config.TOKEN_SECRET);
         var userId = payload.sub;
-
 
         User.findOne({id: userId})
             .populate('rooms')
@@ -30,12 +27,6 @@ module.exports = {
                     // Save the socket to the user in db
                     foundUser.socket = socket.id;
                     foundUser.save(function(err, user) {
-                        // Joins/Subscribes user to the room
-                        sails.sockets.join(socket, roomName);
-                        // Broadcast a msg to other users in that room notifying for the new user
-                        sails.sockets.broadcast(roomName, 'toast', user.name + ' has entered the ' + roomName + ' room', socket);
-                        // Refreshes every subscriber's user view
-                        sails.sockets.broadcast(roomName, 'refresh', roomName);
 
                         // Create / find room and add the user to it if he is not already in
                         Room.findOne({name: roomName}, function(err, foundRoom) {
@@ -48,7 +39,7 @@ module.exports = {
                                     room.save(function(err, savedRoom) {
                                         // Send a msg to all subscribers to room model to update their rooms
                                         Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
-                                        deferred.resolve(savedRoom);
+                                        deferred.resolve();
 
                                         res.status(200).json(savedRoom);
                                     });
@@ -61,7 +52,7 @@ module.exports = {
                                 if (!userIsInRoom) {
                                     foundRoom.users.add(user.id);
                                     foundRoom.save(function(err, savedRoom) {
-                                        deferred.resolve(savedRoom);
+                                        deferred.resolve();
 
                                         res.status(200).json(savedRoom);
                                     });
@@ -73,28 +64,13 @@ module.exports = {
                     res.status(401).send({message: 'Authorization failed'});
                 }
 
-                // Make a check if user is in global room after he joined the other room
-                // Usually he is not in global after refresh on a certain room page
-                deferred.promise.then(function(savedRoom) {
-                    var userIsInGlobal = findInObjectArray(foundUser.rooms, 'name', globalRoom);
-
-                    // Check if the current room he joined is not global
-                    if (savedRoom.name !== globalRoom && !userIsInGlobal) {
-                        // If not add him and notify the others
-                        sails.sockets.join(socket, globalRoom);
-                        sails.sockets.broadcast(globalRoom, 'refresh', roomName);
-                        sails.sockets.broadcast(globalRoom, 'toast', foundUser.name + ' has entered the ' + globalRoom + ' room', socket);
-
-                        // Add the user to the global room users collection and via versa
-                        Room.findOne({name: globalRoom})
-                            .populate('users')
-                            .exec(function(err, foundGlobalRoom) {
-                                if (foundGlobalRoom) {
-                                    foundGlobalRoom.users.add(foundUser.id);
-                                    foundGlobalRoom.save();
-                                }
-                            });
-                    }
+                deferred.promise.then(function() {
+                    // Joins/Subscribes user to the room
+                    sails.sockets.join(socket, roomName);
+                    // Broadcast a msg to other users in that room notifying for the new user
+                    sails.sockets.broadcast(roomName, 'toast', foundUser.name + ' has entered the ' + roomName + ' room', socket);
+                    // Refreshes every subscriber's user view
+                    sails.sockets.broadcast(roomName, 'refresh', roomName);
                 });
             });
     },

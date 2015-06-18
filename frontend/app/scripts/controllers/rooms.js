@@ -8,18 +8,7 @@
  * Controller of the sailsChatApp
  */
 angular.module('sailsChatApp').controller('RoomsCtrl', function ($rootScope, $scope, $state, $window, toastr, socketEvents, API_URL) {
-    $scope.users = [];
     $scope.rooms = [];
-
-    var roomName = 'global';
-
-    // Add the io.socket.on event listeners
-    socketEvents.add();
-
-    // Watch for rootScope users change from socket refresh event
-    $rootScope.$on('refreshUsers-' + roomName, function(event, args) {
-        $scope.users = args;
-    });
 
     // Bind event to room model to listen for room changes
     io.socket.on('room', function(event) {
@@ -43,11 +32,5 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($rootScope, $sc
     $scope.enterRoom = function(name) {
         $state.go('room', { name: name });
     };
-
-    // Send user authentication to indicate user has joined the room
-    io.socket.post(API_URL + 'room/join', {
-        roomName: roomName,
-        token: $window.localStorage.satellizer_token
-    }, function(data, res) { });
 
 });
