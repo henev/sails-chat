@@ -3,12 +3,13 @@
     <div ng-repeat="room in rooms" ng-if="room.name !== 'global'">
         <p class="btn btn-link" ng-click="enterRoom(room.name)">{{ room.name }}</p>
     </div>
+    <p ng-if="!rooms.length">There are no available rooms</p>
     <hr>
     <form ng-submit="enterRoom(newRoomName)">
         <div class="form-group">
             <label class="control-label">Create room</label>
             <input class="form-control" type="text" ng-model="newRoomName" placeholder="Enter room name">
         </div>
-        <input type="submit" class="btn btn-default" value="Create room">
+        <input ng-disabled="!newRoomName" type="submit" class="btn btn-default" value="Create room">
     </form>
 </div>

@@ -43,7 +43,10 @@ module.exports = {
                                         Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
                                         deferred.resolve(savedRoom);
 
-                                        res.status(200).json(savedRoom);
+                                        res.status(200).json({
+                                            room: savedRoom,
+                                            userId: foundUser.id
+                                        });
                                     });
                                 });
                             } else {
@@ -56,26 +59,29 @@ module.exports = {
                                     foundRoom.save(function(err, savedRoom) {
                                         deferred.resolve(savedRoom);
 
-                                        res.status(200).json(savedRoom);
+                                        res.status(200).json({
+                                            room: savedRoom,
+                                            userId: foundUser.id
+                                        });
                                     });
                                 }
                             }
                         });
                     });
+
+                    deferred.promise.then(function(savedRoom) {
+                        // Joins/Subscribes user to the room
+                        sails.sockets.join(socket, roomName);
+                        // Broadcast a msg to other users in that room notifying for the new user
+                        sails.sockets.broadcast(roomName, 'toast', foundUser.name + ' has entered the ' + roomName + ' room', socket);
+                        // Refreshes every subscriber's user view
+                        sails.sockets.broadcast(roomName, 'refresh', roomName);
+
+                        Room.subscribe(socket, savedRoom);
+                    });
                 } else {
                     res.status(401).send({message: 'Authorization failed'});
                 }
-
-                deferred.promise.then(function(savedRoom) {
-                    // Joins/Subscribes user to the room
-                    sails.sockets.join(socket, roomName);
-                    // Broadcast a msg to other users in that room notifying for the new user
-                    sails.sockets.broadcast(roomName, 'toast', foundUser.name + ' has entered the ' + roomName + ' room', socket);
-                    // Refreshes every subscriber's user view
-                    sails.sockets.broadcast(roomName, 'refresh', roomName);
-
-                    Room.subscribe(socket, savedRoom);
-                });
             });
     },
 

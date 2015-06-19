@@ -11,6 +11,7 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
     $scope.messages = [];
     $scope.users = [];
     $scope.room = {};
+    $scope.userId = '';
 
     var roomName = $location.search().name;
 
@@ -19,7 +20,8 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
         token: $window.localStorage.satellizer_token
     }, function(data, res) {
         $scope.$apply(function() {
-            $scope.room = data;
+            $scope.room = data.room;
+            $scope.userId = data.userId;
 
             // Get the messages for the room
             $http
@@ -41,6 +43,8 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
             text: $scope.text,
             roomId: $scope.room.id
         });
+
+        $scope.text = '';
     };
 
     // On scope destroy

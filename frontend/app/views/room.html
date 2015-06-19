@@ -6,10 +6,24 @@
 
     <h5>Users in the room</h5>
     <p ng-repeat="user in users">{{ user.name }}</p>
+    <p ng-if="!users.length">There are no online users in this room</p>
 
     <hr>
 
-    <p ng-repeat="message in messages">{{ message.owner.name }} - {{ message.text }} - <span ng-bind="message.updatedAt | date:'dd/MM/yy H:m'"></span></p>
+    <div ng-repeat="message in messages" class="message-container">
+        <div class="clearfix">
+            <div class="text-primary pull-left">
+                <strong ng-if="userId !== message.owner.id">{{ message.owner.name }}</strong>
+                <strong ng-if="userId === message.owner.id">Me</strong>
+            </div>
+
+            <em class="small pull-right" ng-bind="message.updatedAt | date:' H:m dd/MM'"></em>
+        </div>
+
+        <div class="text-justify">{{ message.text }}</div>
+
+        <p ng-if="!messages.length">There are no messages in this room</p>
+    </div>
 
     <hr>
 
