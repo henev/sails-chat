@@ -51,7 +51,8 @@ module.exports = {
 
                                         res.status(200).json({
                                             room: savedRoom,
-                                            userId: foundUser.id
+                                            userId: foundUser.id,
+                                            isNew: true
                                         });
                                     });
                                 });
@@ -69,7 +70,8 @@ module.exports = {
 
                                         res.status(200).json({
                                             room: savedRoom,
-                                            userId: foundUser.id
+                                            userId: foundUser.id,
+                                            isNew: false
                                         });
                                     });
                                 }

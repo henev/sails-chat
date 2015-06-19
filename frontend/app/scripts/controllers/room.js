@@ -24,6 +24,10 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
                 $scope.room = data.room;
                 $scope.userId = data.userId;
 
+                if (data.isNew) {
+                    toastr.success('You have created a new room');
+                }
+
                 // Get the messages for the room
                 $http
                     .get(API_URL + 'message?room=' + $scope.room.id)
@@ -106,9 +110,7 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
         });
     }
 
-    function refreshMessages(event) {
-        console.log(event);
-
+    function refreshMessages() {
         // On message model change update the room messages
         $scope.$apply(function() {
             $http
