@@ -6,7 +6,7 @@
  */
 var jwt = require('jwt-simple');
 var q = require('q');
-var debug = require('debug')('room');
+var async = require('async');
 
 module.exports = {
 
@@ -16,114 +16,262 @@ module.exports = {
         var socket = req.socket;
         var payload = jwt.decode(token, config.TOKEN_SECRET);
         var userId = payload.sub;
+        var deferred = q.defer();
 
-        User.findOne({id: userId})
-            .populate('rooms')
-            .exec(function(err, foundUser) {
-                if (err) return res.status(401).send({message: 'Authorization failed'});
+        //User.findOne({id: userId})
+        //    .populate('rooms')
+        //    .exec(function(err, foundUser) {
+        //        if (err) return res.status(401).send({message: 'Authorization failed'});
+        //
+        //        if (foundUser) {
+        //            var deferred = q.defer();
+        //
+        //            // Save the socket to the user in db
+        //            foundUser.socket = socket.id;
+        //            foundUser.save(function(err, user) {
+        //                if (err) return res.status(500).send({message: 'Unable to join the room'});
+        //
+        //                // Create / find room and add the user to it if he is not already in
+        //                Room.findOne({name: roomName}, function(err, foundRoom) {
+        //                    if (err) return res.status(404).send({message: 'Unable to join the room'});
+        //
+        //                    if (!foundRoom) {
+        //                        // Create room and add user
+        //                        Room.create({
+        //                            name: roomName
+        //                        }).exec(function(err, room) {
+        //                            if (err) return res.status(500).send({message: 'Unable to create new room'});
+        //
+        //                            room.users.add(user.id);
+        //                            room.save(function(err, savedRoom) {
+        //                                if (err) return res.status(500).send({message: 'Unable to join the room'});
+        //
+        //                                // Send a msg to all subscribers to room model to update their rooms
+        //                                Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
+        //                                deferred.resolve(savedRoom);
+        //
+        //                                res.status(200).json({
+        //                                    room: savedRoom,
+        //                                    userId: foundUser.id,
+        //                                    isNew: true
+        //                                });
+        //                            });
+        //                        });
+        //                    } else {
+        //                        // Check if user is already in (subscribed to) room
+        //                        var userIsInRoom = findInObjectArray(foundUser.rooms, 'id', foundRoom.id);
+        //
+        //                        // Adds (subscribes) him if he is not in the room
+        //                        if (!userIsInRoom) {
+        //                            foundRoom.users.add(user.id);
+        //                            foundRoom.save(function(err, savedRoom) {
+        //                                if (err) return res.status(500).send({message: 'Unable to join the room'});
+        //
+        //                                deferred.resolve(savedRoom);
+        //
+        //                                res.status(200).json({
+        //                                    room: savedRoom,
+        //                                    userId: foundUser.id,
+        //                                    isNew: false
+        //                                });
+        //                            });
+        //                        }
+        //                    }
+        //                });
+        //            });
+        //
+        //            deferred.promise.then(function(savedRoom) {
+        //                // Joins/Subscribes user to the room
+        //                sails.sockets.join(socket, roomName);
+        //                // Broadcast a msg to other users in that room notifying for the new user
+        //                sails.sockets.broadcast(roomName, 'toast', foundUser.name + ' has entered the ' + roomName + ' room', socket);
+        //                // Refreshes every subscriber's user view
+        //                sails.sockets.broadcast(roomName, 'refresh', roomName);
+        //
+        //                Room.subscribe(socket, savedRoom);
+        //            });
+        //        } else {
+        //            res.status(401).send({message: 'Authorization failed'});
+        //        }
+        //    });
 
-                if (foundUser) {
-                    var deferred = q.defer();
+        async.waterfall([
+            // Find user
+            function(callback) {
+                User.findOne({id: userId})
+                    .populate('rooms')
+                    .exec(function(err, user) {
+                        if (err) callback({status: 401, message: 'Authorization failed'});
 
-                    // Save the socket to the user in db
-                    foundUser.socket = socket.id;
-                    foundUser.save(function(err, user) {
-                        if (err) return res.status(500).send({message: 'Unable to join the room'});
+                        if (user) {
+                            callback(null, user);
+                        } else {
+                            callback({status: 401, message: 'Authorization failed'});
+                        }
+                    });
+            },
 
-                        // Create / find room and add the user to it if he is not already in
-                        Room.findOne({name: roomName}, function(err, foundRoom) {
-                            if (err) return res.status(404).send({message: 'Unable to join the room'});
+            // Add the socket id to his account and find the room
+            function(user, callback) {
 
-                            if (!foundRoom) {
-                                // Create room and add user
-                                Room.create({
-                                    name: roomName
-                                }).exec(function(err, room) {
-                                    if (err) return res.status(500).send({message: 'Unable to create new room'});
+                // Save the socket to the user in db
+                user.socket = socket.id;
+                user.save(function (err, user) {
+                    if (err) callback({status: 500, message: 'Unable to join the room'});
+                    // Create / find room and add the user to it if he is not already in
+                    Room.findOne({name: roomName}, function(err, room) {
+                        if (err) callback({status: 404, message: 'Unable to join the room'});
 
-                                    room.users.add(user.id);
-                                    room.save(function(err, savedRoom) {
-                                        if (err) return res.status(500).send({message: 'Unable to join the room'});
+                        callback(null, user, room);
+                    });
+                });
 
-                                        // Send a msg to all subscribers to room model to update their rooms
-                                        Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
-                                        deferred.resolve(savedRoom);
+                // Sails.sockets events to other users in the room once the user has joined
+                deferred.promise.then(function(room) {
+                    // Joins/Subscribes user to the room
+                    sails.sockets.join(socket, roomName);
+                    // Broadcast a msg to other users in that room notifying for the new user
+                    sails.sockets.broadcast(roomName, 'toast', user.name + ' has entered the ' + roomName + ' room', socket);
+                    // Refreshes every subscriber's user view
+                    sails.sockets.broadcast(roomName, 'refresh', roomName);
 
-                                        res.status(200).json({
-                                            room: savedRoom,
-                                            userId: foundUser.id,
-                                            isNew: true
-                                        });
-                                    });
-                                });
-                            } else {
-                                // Check if user is already in (subscribed to) room
-                                var userIsInRoom = findInObjectArray(foundUser.rooms, 'id', foundRoom.id);
+                    Room.subscribe(socket, room);
+                });
+            },
 
-                                // Adds (subscribes) him if he is not in the room
-                                if (!userIsInRoom) {
-                                    foundRoom.users.add(user.id);
-                                    foundRoom.save(function(err, savedRoom) {
-                                        if (err) return res.status(500).send({message: 'Unable to join the room'});
+            // Create or update an existing room with the user
+            function(user, room, callback) {
+                if (!room) {
+                    // Create room and add user
+                    Room.create({
+                        name: roomName
+                    }).exec(function(err, newRoom) {
+                        if (err) callback({status: 500, message: 'Unable to join the room'});
 
-                                        deferred.resolve(savedRoom);
+                        newRoom.users.add(user.id);
+                        newRoom.save(function(err, savedRoom) {
+                            if (err) callback({status: 500, message: 'Unable to join the room'});
 
-                                        res.status(200).json({
-                                            room: savedRoom,
-                                            userId: foundUser.id,
-                                            isNew: false
-                                        });
-                                    });
-                                }
-                            }
+                            // Send a msg to all subscribers to room model to update their rooms
+                            Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
+                            deferred.resolve(savedRoom);
+
+                            callback(null, {
+                                room: savedRoom,
+                                userId: user.id,
+                                isNew: true
+                            });
                         });
                     });
-
-                    deferred.promise.then(function(savedRoom) {
-                        // Joins/Subscribes user to the room
-                        sails.sockets.join(socket, roomName);
-                        // Broadcast a msg to other users in that room notifying for the new user
-                        sails.sockets.broadcast(roomName, 'toast', foundUser.name + ' has entered the ' + roomName + ' room', socket);
-                        // Refreshes every subscriber's user view
-                        sails.sockets.broadcast(roomName, 'refresh', roomName);
-
-                        Room.subscribe(socket, savedRoom);
-                    });
                 } else {
-                    res.status(401).send({message: 'Authorization failed'});
+                    // Check if user is already in (subscribed to) room
+                    var userIsInRoom = findInObjectArray(user.rooms, 'id', room.id);
+
+                    // Adds (subscribes) him if he is not in the room
+                    if (!userIsInRoom) {
+                        room.users.add(user.id);
+                        room.save(function(err, savedRoom) {
+                            if (err) callback({status: 500, message: 'Unable to join the room'});
+
+                            deferred.resolve(savedRoom);
+
+                            callback(null, {
+                                room: savedRoom,
+                                userId: user.id,
+                                isNew: false
+                            });
+                        });
+                    }
                 }
+            }
+        ], function(err, result) {
+            if (err) return res.status(err.status).send({message: err.message});
+
+            res.status(200).send({
+                room: result.room,
+                userId: result.userId,
+                isNew: result.isNew
             });
+        })
     },
 
     leave: function(req, res) {
         var roomName = req.body.roomName;
         var socket = req.socket;
 
-        User.findOne({socket: socket.id})
-            .populate('rooms', {name: roomName})
-            .exec(function(err, user) {
-                if (err) return res.status(500).send({message: 'Unexpected error occurred'});
+        //User.findOne({socket: socket.id})
+        //    .populate('rooms', {name: roomName})
+        //    .exec(function(err, user) {
+        //        if (err) return res.status(500).send({message: 'Unexpected error occurred'});
+        //
+        //        if (user) {
+        //            var foundRoom = user.rooms[0];
+        //            if (foundRoom) {
+        //                user.rooms.remove(foundRoom.id);
+        //                user.save(function(err) {
+        //                    if (err) return res.status(500).send({message: 'Unexpected error occurred'});
+        //
+        //                    sails.sockets.leave(socket, roomName);
+        //                    sails.sockets.broadcast(roomName, 'refresh', roomName);
+        //                    sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
+        //
+        //                    Room.unsubscribe(socket, foundRoom);
+        //
+        //                    res.status(200).end();
+        //                });
+        //            }
+        //        } else {
+        //            return res.status(404).send({message: 'Unexpected error occurred'});
+        //        }
+        //    });
 
+        async.waterfall([
+            // Find user
+            function(callback) {
+                User.findOne({socket: socket.id})
+                    .populate('rooms', {name: roomName})
+                    .exec(function(err, user) {
+                        if (err) callback({status: 500, message: 'Unexpected error occurred'});
+
+                        callback(null, user)
+                    });
+            },
+
+            // Remove room from user's rooms
+            function(user, callback) {
                 if (user) {
                     var foundRoom = user.rooms[0];
                     if (foundRoom) {
                         user.rooms.remove(foundRoom.id);
-                        user.save(function(err) {
-                            if (err) return res.status(500).send({message: 'Unexpected error occurred'});
+                        user.save(function(err, savedUser) {
+                            if (err) callback({status: 500, message: 'Unexpected error occurred'});
 
-                            sails.sockets.leave(socket, roomName);
-                            sails.sockets.broadcast(roomName, 'refresh', roomName);
-                            sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
-
-                            Room.unsubscribe(socket, foundRoom);
-
-                            res.status(200).end();
+                            callback(null, savedUser, foundRoom);
                         });
                     }
                 } else {
-                    return res.status(404).send({message: 'Unexpected error occurred'});
+                    callback({status: 404, message: 'Unexpected error occurred'});
                 }
-            });
+            },
+
+            // Socket leaves the sails.sockets room and messages are broadcasted to the other subscribers of the room
+            // Also the socket is unsubscribed from the room's model instance events
+            function(user, room, callback) {
+                sails.sockets.leave(socket, roomName);
+                sails.sockets.broadcast(roomName, 'refresh', roomName);
+                sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
+
+                Room.unsubscribe(socket, room);
+
+                callback(null);
+            }
+
+        // Handle the errors or the end of the waterfall chain
+        ], function(err) {
+            if (err) return res.status(err.status).send({message: err.message});
+
+            res.status(200).end();
+        })
     },
 
     users: function(req, res) {
