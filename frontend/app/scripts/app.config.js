@@ -28,7 +28,7 @@ angular.module('sailsChatApp')
         $authProvider.signupUrl = API_URL + 'user/register';
     })
 
-    .constant('API_URL', 'http://localhost:1337/')
+    .constant('API_URL', 'http://10.10.1.103:1337/')
 
     .run(function($rootScope, $auth, $state, socketEvents, API_URL) {
         $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams){

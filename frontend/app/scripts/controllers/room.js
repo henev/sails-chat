@@ -22,7 +22,8 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
             $scope.room = data;
 
             // Get the messages for the room
-            $http.get(API_URL + 'message?room=' + $scope.room.id)
+            $http
+                .get(API_URL + 'message?room=' + $scope.room.id)
                 .success(function(messages) {
                     $scope.messages = messages;
                 });
@@ -73,7 +74,8 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
 
         // On message model change update the room messages
         $scope.$apply(function() {
-            $http.get(API_URL + 'message?room=' + $scope.room.id)
+            $http
+                .get(API_URL + 'message?room=' + $scope.room.id)
                 .success(function(messages) {
                     $scope.messages = messages;
                 });
