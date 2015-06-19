@@ -20,7 +20,6 @@ module.exports = {
         User.findOne({id: userId})
             .populate('rooms')
             .exec(function(err, foundUser) {
-
                 if (err) return res.status(401).send({message: 'Authorization failed'});
 
                 if (foundUser) {
@@ -29,16 +28,23 @@ module.exports = {
                     // Save the socket to the user in db
                     foundUser.socket = socket.id;
                     foundUser.save(function(err, user) {
+                        if (err) return res.status(500).send({message: 'Unable to join the room'});
 
                         // Create / find room and add the user to it if he is not already in
                         Room.findOne({name: roomName}, function(err, foundRoom) {
+                            if (err) return res.status(404).send({message: 'Unable to join the room'});
+
                             if (!foundRoom) {
                                 // Create room and add user
                                 Room.create({
                                     name: roomName
                                 }).exec(function(err, room) {
+                                    if (err) return res.status(500).send({message: 'Unable to create new room'});
+
                                     room.users.add(user.id);
                                     room.save(function(err, savedRoom) {
+                                        if (err) return res.status(500).send({message: 'Unable to join the room'});
+
                                         // Send a msg to all subscribers to room model to update their rooms
                                         Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
                                         deferred.resolve(savedRoom);
@@ -57,6 +63,8 @@ module.exports = {
                                 if (!userIsInRoom) {
                                     foundRoom.users.add(user.id);
                                     foundRoom.save(function(err, savedRoom) {
+                                        if (err) return res.status(500).send({message: 'Unable to join the room'});
+
                                         deferred.resolve(savedRoom);
 
                                         res.status(200).json({
@@ -92,13 +100,15 @@ module.exports = {
         User.findOne({socket: socket.id})
             .populate('rooms', {name: roomName})
             .exec(function(err, user) {
-                if (err) return res.status(500).send({message: 'Problem with socket leaving the room'});
+                if (err) return res.status(500).send({message: 'Unexpected error occurred'});
 
                 if (user) {
                     var foundRoom = user.rooms[0];
                     if (foundRoom) {
                         user.rooms.remove(foundRoom.id);
                         user.save(function(err) {
+                            if (err) return res.status(500).send({message: 'Unexpected error occurred'});
+
                             sails.sockets.leave(socket, roomName);
                             sails.sockets.broadcast(roomName, 'refresh', roomName);
                             sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
@@ -109,7 +119,7 @@ module.exports = {
                         });
                     }
                 } else {
-                    return res.status(404).send({message: 'The room has not been found'});
+                    return res.status(404).send({message: 'Unexpected error occurred'});
                 }
             });
     },
@@ -129,7 +139,7 @@ module.exports = {
 
         // Get all subscribers in the room by sockets
         User.find({socket: sockets}, function(err, users) {
-            if (err) return res.status(500).end();
+            if (err) return res.status(500).send({message: 'Unexpected error occurred'});
 
             res.status(200).json(users);
         });
@@ -137,6 +147,8 @@ module.exports = {
 
     unsubscribe: function(req, res) {
         Room.find({}, function(err, rooms) {
+            if (err) return res.status(500).send({message: 'Unexpected error occurred'});
+
             Room.unsubscribe(req.socket, rooms);
             Room.unwatch(req.socket);
         });

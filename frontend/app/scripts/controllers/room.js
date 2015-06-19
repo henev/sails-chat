@@ -7,7 +7,7 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $location, $window, $http, toastr, API_URL) {
+angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $location, $window, $http, $state, toastr, API_URL) {
     $scope.messages = [];
     $scope.users = [];
     $scope.room = {};
@@ -19,17 +19,32 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
         roomName: roomName,
         token: $window.localStorage.satellizer_token
     }, function(data, res) {
-        $scope.$apply(function() {
-            $scope.room = data.room;
-            $scope.userId = data.userId;
+        if (res.statusCode === 200) {
+            $scope.$apply(function () {
+                $scope.room = data.room;
+                $scope.userId = data.userId;
 
-            // Get the messages for the room
-            $http
-                .get(API_URL + 'message?room=' + $scope.room.id)
-                .success(function(messages) {
-                    $scope.messages = messages;
-                });
-        });
+                // Get the messages for the room
+                $http
+                    .get(API_URL + 'message?room=' + $scope.room.id)
+                    .then(function (messages) {
+                        $scope.messages = messages.data;
+                    })
+                    .catch(function(res) {
+                        console.log('Status code: ' + res.status);
+                        console.log('Status message: ' + res.statusText);
+                        toastr.error('Unexpected error occurred while loading the messages', 'Error');
+
+                        $state.go('rooms');
+                    });
+            });
+        } else {
+            console.log('Status code: ' + res.statusCode);
+            console.log('Error message: ' + data.message);
+            toastr.error(data.message, 'Error');
+
+            $state.go('rooms');
+        }
     });
 
     // Bind event listeners
@@ -42,6 +57,12 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
         io.socket.post(API_URL + 'message/create', {
             text: $scope.text,
             roomId: $scope.room.id
+        }, function(data, res) {
+            if (res.statusCode !== 200) {
+                console.log('Status code: ' + res.statusCode);
+                console.log('Error message: ' + data.message);
+                toastr.error(data.message, 'Error');
+            }
         });
 
         $scope.text = '';
@@ -50,11 +71,17 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
     // On scope destroy
     $scope.$on('$destroy', function() {
         // Send to api that user is leaving the room
-        io.socket.post(API_URL + 'room/leave', { roomName: roomName }, function() {
-            // Unbind event listeners
-            io.socket.off('toast', sendToast);
-            io.socket.off('refresh', refreshUsers);
-            io.socket.off('room', refreshMessages);
+        io.socket.post(API_URL + 'room/leave', { roomName: roomName }, function(data, res) {
+            if (res.statusCode === 200) {
+                // Unbind event listeners
+                io.socket.off('toast', sendToast);
+                io.socket.off('refresh', refreshUsers);
+                io.socket.off('room', refreshMessages);
+            } else {
+                console.log('Status code: ' + res.statusCode);
+                console.log('Error message: ' + data.message);
+                toastr.error(data.message, 'Error');
+            }
         });
     });
 
@@ -67,9 +94,15 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
         io.socket.post(API_URL + 'room/users', {
             roomName: roomName
         }, function(data, res) {
-            $scope.$apply(function() {
-                $scope.users = data;
-            });
+            if (res.statusCode === 200) {
+                $scope.$apply(function() {
+                    $scope.users = data;
+                });
+            } else {
+                console.log('Status code: ' + res.status);
+                console.log('Status message: ' + res.statusText);
+                toastr.error('Unexpected error occurred while reloading the room users', 'Error');
+            }
         });
     }
 
@@ -80,8 +113,13 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
         $scope.$apply(function() {
             $http
                 .get(API_URL + 'message?room=' + $scope.room.id)
-                .success(function(messages) {
-                    $scope.messages = messages;
+                .then(function(messages) {
+                    $scope.messages = messages.data;
+                })
+                .catch(function(res) {
+                    console.log('Status code: ' + res.status);
+                    console.log('Status message: ' + res.statusText);
+                    toastr.error('Unexpected error occurred while reloading the messages', 'Error');
                 });
         });
     }

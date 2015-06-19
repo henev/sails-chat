@@ -6,6 +6,7 @@
  */
 
 module.exports = {
+
 	create: function(req, res) {
         var socket = req.socket;
         var text = req.body.text;
