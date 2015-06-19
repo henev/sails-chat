@@ -7,20 +7,12 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('RoomCtrl', function ($rootScope, $scope, $location, $window, $http, API_URL, socketEvents) {
+angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $location, $window, $http, toastr, API_URL) {
     $scope.messages = [];
     $scope.users = [];
     $scope.room = {};
 
     var roomName = $location.search().name;
-
-    // Add the io.socket.on event listeners
-    socketEvents.add();
-
-    // Watch for rootScope users change from socket refresh event
-    $rootScope.$on('refreshUsers-' + roomName, function(event, args) {
-        $scope.users = args;
-    });
 
     io.socket.post(API_URL + 'room/join', {
         roomName: roomName,
@@ -31,27 +23,60 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($rootScope, $sco
 
             // Get the messages for the room
             $http.get(API_URL + 'message?room=' + $scope.room.id)
-                .success(function(data) {
-                    $scope.messages = data;
+                .success(function(messages) {
+                    $scope.messages = messages;
                 });
         });
     });
 
-    io.socket.on('room', function(event) {
-        console.log(event);
-        // On message model change update the room messages
-        $scope.$apply(function() {
-            $http.get(API_URL + 'message?room=' + $scope.room.id)
-                .success(function(data) {
-                    $scope.messages = data;
-                });
-        });
-    });
+    // Bind event listeners
+    io.socket.on('toast', sendToast);
+    io.socket.on('refresh', refreshUsers);
+    io.socket.on('room', refreshMessages);
 
+    // On create message button click
     $scope.createMessage = function() {
         io.socket.post(API_URL + 'message/create', {
             text: $scope.text,
             roomId: $scope.room.id
-        }, function(data, res) { });
+        });
     };
+
+    // On scope destroy
+    $scope.$on('$destroy', function() {
+        // Send to api that user is leaving the room
+        io.socket.post(API_URL + 'room/leave', { roomName: roomName }, function() {
+            // Unbind event listeners
+            io.socket.off('toast', sendToast);
+            io.socket.off('refresh', refreshUsers);
+            io.socket.off('room', refreshMessages);
+        });
+    });
+
+    // Callback function to bind to new toast event
+    function sendToast(msg) {
+        toastr.info(msg);
+    }
+
+    function refreshUsers() {
+        io.socket.post(API_URL + 'room/users', {
+            roomName: roomName
+        }, function(data, res) {
+            $scope.$apply(function() {
+                $scope.users = data;
+            });
+        });
+    }
+
+    function refreshMessages(event) {
+        console.log(event);
+
+        // On message model change update the room messages
+        $scope.$apply(function() {
+            $http.get(API_URL + 'message?room=' + $scope.room.id)
+                .success(function(messages) {
+                    $scope.messages = messages;
+                });
+        });
+    }
 });

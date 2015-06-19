@@ -32,11 +32,6 @@ angular.module('sailsChatApp')
 
     .run(function($rootScope, $auth, $state, socketEvents, API_URL) {
         $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams){
-            socketEvents.remove();
-
-            if (fromState.name === 'room') {
-                io.socket.post(API_URL + 'room/leave', { roomName: fromParams.name }, function(data, res) { });
-            }
 
             if (toState.name === 'main' && $auth.isAuthenticated()) {
                 event.preventDefault();
