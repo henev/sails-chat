@@ -1,27 +1,51 @@
 <div class="well">
-    <h2>{{ room.name }}</h2>
-    <h4>{{ room.id }}</h4>
+    <div class="clearfix">
+        <div class="pull-left">
+            <h2>{{ room.name }}</h2>
+            <div class="small">Owner: <strong>{{ room.owner.name }}</strong></div>
+            <div class="small">Created: <em ng-bind="room.createdAt | date:' H:mm - dd/MM/yyyy'"></em></div>
+        </div>
+
+        <!--<div class="pull-right"><span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span></div>-->
+        <div class="btn-group pull-right" dropdown>
+            <span class="glyphicon glyphicon-menu-down cursor-pointer" aria-hidden="true" dropdown-toggle></span>
+            <!--<button type="button" class="btn btn-primary dropdown-toggle" dropdown-toggle>-->
+                <!--Dropdown on Body <span class="caret"></span>-->
+            <!--</button>-->
+            <ul class="dropdown-menu" role="menu">
+                <li class="dropdown-header">Messages</li>
+                <li class="disabled"><a href="#">Search</a></li>
+                <li class="disabled"><a href="#">Filter</a></li>
+                <li class="divider"></li>
+                <li class="dropdown-header">Room</li>
+                <li class="disabled"><a href="#">Subscribe</a></li>
+                <li ng-if="userId === room.owner.id"><a class="cursor-pointer" ng-click="deleteRoom(room.id)"><span class="text-danger">Delete</span></a></li>
+            </ul>
+        </div>
+    </div>
 
     <hr>
 
     <h5>Users in the room</h5>
-    <p ng-repeat="user in users">{{ user.name }}</p>
+    <p class="text-success" ng-repeat="user in users"><strong>{{ user.name }}</strong></p>
     <p ng-if="!users.length">There are no online users in this room</p>
 
     <hr>
 
-    <div ng-repeat="message in messages" class="message-container">
-        <div class="clearfix">
-            <div class="text-primary pull-left">
-                <strong ng-if="userId !== message.owner.id">{{ message.owner.name }}</strong>
-                <strong ng-if="userId === message.owner.id">Me</strong>
+    <div id="messages-container">
+        <div ng-repeat="message in messages" class="message-container">
+            <div class="clearfix">
+                <div class="text-primary pull-left">
+                    <strong ng-if="userId !== message.owner.id">{{ message.owner.name }}</strong>
+                    <strong ng-if="userId === message.owner.id">Me</strong>
+                </div>
+
+                <em class="small pull-right" ng-bind="message.updatedAt | date:' H:m dd/MM'"></em>
             </div>
 
-            <em class="small pull-right" ng-bind="message.updatedAt | date:' H:m dd/MM'"></em>
+            <div class="text-justify">{{ message.text }}</div>
+
         </div>
-
-        <div class="text-justify">{{ message.text }}</div>
-
         <p ng-if="!messages.length">There are no messages in this room</p>
     </div>
 
