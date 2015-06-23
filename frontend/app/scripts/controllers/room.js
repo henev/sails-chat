@@ -7,7 +7,7 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $location, $window, $http, $state, $timeout, toastr, API_URL) {
+angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $location, $window, $http, $state, $timeout, $auth, toastr, API_URL) {
     $scope.messages = [];
     $scope.users = [];
     $scope.room = {};
@@ -15,9 +15,16 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
 
     var roomName = $location.search().name;
 
-    io.socket.post(API_URL + '/room/join', {
-        roomName: roomName,
-        token: $window.localStorage.satellizer_token
+    io.socket.request({
+        url: API_URL + '/room/join',
+        method: 'POST',
+        headers: {
+            authorization: 'Bearer ' + $auth.getToken()
+        },
+        params: {
+            roomName: roomName,
+            token: $auth.getToken()
+        }
     }, function(data, res) {
         if (res.statusCode === 200) {
             $scope.$apply(function () {
@@ -29,8 +36,7 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
                 }
 
                 // Get the messages for the room
-                $http
-                    .get(API_URL + '/message?room=' + $scope.room.id)
+                $http.get(API_URL + '/message?room=' + $scope.room.id)
                     .then(function (messages) {
                         $scope.messages = messages.data;
 
@@ -97,7 +103,16 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
     // On scope destroy
     $scope.$on('$destroy', function() {
         // Send to api that user is leaving the room
-        io.socket.post(API_URL + '/room/leave', { roomName: roomName }, function(data, res) {
+        io.socket.request({
+            url: API_URL + '/room/leave',
+            method: 'POST',
+            headers: {
+                authorization: 'Bearer ' + $auth.getToken()
+            },
+            params: {
+                roomName: roomName
+            }
+        }, function(data, res) {
             // Unbind event listeners
             io.socket.off('toast', sendToast);
             io.socket.off('refresh', refreshUsers);
@@ -118,8 +133,15 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
     }
 
     function refreshUsers() {
-        io.socket.post(API_URL + '/room/users', {
-            roomName: roomName
+        io.socket.request({
+            url: API_URL + '/room/users',
+            method: 'POST',
+            headers: {
+                authorization: 'Bearer ' + $auth.getToken()
+            },
+            params: {
+                roomName: roomName
+            }
         }, function(data, res) {
             if (res.statusCode === 200) {
                 $scope.$apply(function() {

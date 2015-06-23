@@ -7,24 +7,29 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state, $http, toastr, API_URL) {
+angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state, $http, $auth, toastr, API_URL) {
     $scope.rooms = [];
 
     // Bind event to room model to listen for room changes
     io.socket.on('room', refreshRooms);
 
-    // Get all rooms and and subscribe the socket to their changes
-    //io.socket.get(API_URL + '/room', function(data, res) {
-    //    if (res.statusCode === 200) {
-    //        $scope.$apply(function() {
-    //            $scope.rooms = data;
-    //        });
-    //    } else {
-    //        console.log('Status code: ' + res.statusCode);
-    //        console.log('Error message: ' + data.message);
-    //        toastr.error('Unexpected error occurred while loading the rooms', 'Error');
-    //    }
-    //});
+    io.socket.request({
+        url: API_URL + '/room',
+        method: 'GET',
+        headers: {
+            authorization: 'Bearer ' + $auth.getToken()
+        }
+    }, function(data, res) {
+        if (res.statusCode === 200) {
+            $scope.$apply(function() {
+                $scope.rooms = data;
+            });
+        } else {
+            console.log('Status code: ' + res.statusCode);
+            console.log('Error message: ' + data.message);
+            toastr.error('Unexpected error occurred while loading the rooms', 'Error');
+        }
+    });
 
 
 
@@ -41,7 +46,8 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state,
     });
 
     // Callback function to bind to room model changes
-    function refreshRooms() {
+    function refreshRooms(res) {
+        console.log(res);
         $scope.$apply(function() {
             $http.get(API_URL + '/room')
                 .then(function(rooms) {

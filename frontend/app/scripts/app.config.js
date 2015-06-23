@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('sailsChatApp')
-    .config(function($urlRouterProvider, $stateProvider, $authProvider, toastrConfig, API_URL) {
+    .config(function($urlRouterProvider, $stateProvider, $authProvider, $httpProvider, toastrConfig, API_URL) {
 
         toastrConfig.positionClass = 'toast-bottom-right';
 
@@ -33,8 +33,9 @@ angular.module('sailsChatApp')
 
     .constant('API_URL', environment)
 
-    .run(function($rootScope, $auth, $state) {
+    .run(function($rootScope, $auth, $http, $state) {
         $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams){
+            //$http.defaults.headers.common['Authorization'] = 'Bearer ' + $auth.getToken();
 
             if (toState.name === 'main' && $auth.isAuthenticated()) {
                 event.preventDefault();
