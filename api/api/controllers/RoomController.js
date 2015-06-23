@@ -133,7 +133,7 @@ module.exports = {
                     // Broadcast a msg to other users in that room notifying for the new user
                     sails.sockets.broadcast(roomName, 'toast', user.name + ' has entered the ' + roomName + ' room', socket);
                     // Refreshes every subscriber's user view
-                    sails.sockets.broadcast(roomName, 'refresh', roomName);
+                    sails.sockets.broadcast(roomName, 'refresh-users', roomName);
 
                     Room.subscribe(socket, room);
                 });
@@ -144,7 +144,8 @@ module.exports = {
                 if (!room) {
                     // Create room and add user
                     Room.create({
-                        name: roomName
+                        name: roomName,
+                        owner: user.id
                     }).exec(function(err, newRoom) {
                         if (err) callback({status: 500, message: 'Unable to join the room'});
 
@@ -240,14 +241,18 @@ module.exports = {
             // Remove room from user's rooms
             function(user, callback) {
                 if (user) {
-                    var foundRoom = user.rooms[0];
-                    if (foundRoom) {
+                    if (user.rooms.length > 0) {
+                        var foundRoom = user.rooms[0];
+
                         user.rooms.remove(foundRoom.id);
                         user.save(function(err, savedUser) {
                             if (err) callback({status: 500, message: 'Unexpected error occurred'});
 
                             callback(null, savedUser, foundRoom);
                         });
+                    } else {
+                        // This will probably happen if the room was already deleted and the user is kicked from it
+                        callback(null, null, null);
                     }
                 } else {
                     callback({status: 404, message: 'Unexpected error occurred'});
@@ -257,11 +262,13 @@ module.exports = {
             // Socket leaves the sails.sockets room and messages are broadcasted to the other subscribers of the room
             // Also the socket is unsubscribed from the room's model instance events
             function(user, room, callback) {
-                sails.sockets.leave(socket, roomName);
-                sails.sockets.broadcast(roomName, 'refresh', roomName);
-                sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
+                if (room !== null && user !== null) {
+                    sails.sockets.leave(socket, roomName);
+                    sails.sockets.broadcast(roomName, 'refresh-users', roomName);
+                    sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
 
-                Room.unsubscribe(socket, room);
+                    Room.unsubscribe(socket, room);
+                }
 
                 callback(null);
             }
