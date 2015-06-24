@@ -26,7 +26,7 @@ module.exports.policies = {
      *                                                                          *
      ***************************************************************************/
 
-    '*': true,
+    '*': false,
 
     UserController: {
         login: true,
@@ -34,19 +34,19 @@ module.exports.policies = {
     },
 
     MessageController: {
-        //find: ['jwtAuth'],
-        //create: ['jwtAuth'],
-        //destroy: ['jwtAuth', 'ownResource']
+        find: ['jwtAuth'],
+        create: ['jwtAuth'],
+        destroy: ['jwtAuth', 'ownResource']
     },
 
     RoomController: {
-        //find: ['jwtAuth'],
-        //findOne: ['jwtAuth'],
-        //join: ['jwtAuth'],
-        //leave: ['jwtAuth'],
-        //users: ['jwtAuth'],
-        //unsubscribe: ['jwtAuth'],
-        //destroy: ['jwtAuth', 'ownResource']
+        find: ['jwtAuth'],
+        findOne: ['jwtAuth'],
+        join: ['jwtAuth'],
+        leave: ['jwtAuth'],
+        users: ['jwtAuth'],
+        unsubscribe: ['jwtAuth'],
+        destroy: ['jwtAuth', 'ownResource']
     },
 
     /***************************************************************************
