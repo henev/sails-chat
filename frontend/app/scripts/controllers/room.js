@@ -86,9 +86,16 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
 
     // On create message button click
     $scope.createMessage = function() {
-        io.socket.post(API_URL + '/message/create', {
-            text: $scope.text,
-            roomId: $scope.room.id
+        io.socket.request({
+            url: API_URL + '/message/create',
+            method: 'POST',
+            headers: {
+                authorization: 'Bearer ' + $auth.getToken()
+            },
+            params: {
+                text: $scope.text,
+                roomId: $scope.room.id
+            }
         }, function(data, res) {
             if (res.statusCode !== 200) {
                 console.log('Status code: ' + res.statusCode);
