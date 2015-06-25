@@ -36,7 +36,7 @@ module.exports.policies = {
     MessageController: {
         find: ['jwtAuth'],
         create: ['jwtAuth'],
-        destroy: ['jwtAuth', 'ownResource']
+        destroy: ['jwtAuth']
     },
 
     RoomController: {
@@ -46,7 +46,8 @@ module.exports.policies = {
         leave: ['jwtAuth'],
         users: ['jwtAuth'],
         unsubscribe: ['jwtAuth'],
-        destroy: ['jwtAuth', 'ownResource']
+        userTyping: ['jwtAuth'],
+        destroy: ['jwtAuth']
     },
 
     /***************************************************************************

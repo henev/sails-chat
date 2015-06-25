@@ -131,8 +131,9 @@ module.exports.sockets = {
 
                     // Send to each room the user is subscribed to msg that he left
                     user.rooms.forEach(function(room) {
-                        sails.sockets.broadcast(room.name, 'refresh-users', room.name);
+                        sails.sockets.broadcast(room.name, 'refresh-users', {data: user, verb: 'left'});
                         sails.sockets.broadcast(room.name, 'toast', user.name + ' has left the ' + room.name + ' room');
+
                         room.users.remove(user.id);
                         room.save();
                     });

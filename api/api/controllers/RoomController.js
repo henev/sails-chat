@@ -18,83 +18,6 @@ module.exports = {
         var userId = payload.sub;
         var deferred = q.defer();
 
-        //User.findOne({id: userId})
-        //    .populate('rooms')
-        //    .exec(function(err, foundUser) {
-        //        if (err) return res.status(401).send({message: 'Authorization failed'});
-        //
-        //        if (foundUser) {
-        //            var deferred = q.defer();
-        //
-        //            // Save the socket to the user in db
-        //            foundUser.socket = socket.id;
-        //            foundUser.save(function(err, user) {
-        //                if (err) return res.status(500).send({message: 'Unable to join the room'});
-        //
-        //                // Create / find room and add the user to it if he is not already in
-        //                Room.findOne({name: roomName}, function(err, foundRoom) {
-        //                    if (err) return res.status(404).send({message: 'Unable to join the room'});
-        //
-        //                    if (!foundRoom) {
-        //                        // Create room and add user
-        //                        Room.create({
-        //                            name: roomName
-        //                        }).exec(function(err, room) {
-        //                            if (err) return res.status(500).send({message: 'Unable to create new room'});
-        //
-        //                            room.users.add(user.id);
-        //                            room.save(function(err, savedRoom) {
-        //                                if (err) return res.status(500).send({message: 'Unable to join the room'});
-        //
-        //                                // Send a msg to all subscribers to room model to update their rooms
-        //                                Room.publishCreate({id: savedRoom.id, name: savedRoom.name});
-        //                                deferred.resolve(savedRoom);
-        //
-        //                                res.status(200).json({
-        //                                    room: savedRoom,
-        //                                    userId: foundUser.id,
-        //                                    isNew: true
-        //                                });
-        //                            });
-        //                        });
-        //                    } else {
-        //                        // Check if user is already in (subscribed to) room
-        //                        var userIsInRoom = findInObjectArray(foundUser.rooms, 'id', foundRoom.id);
-        //
-        //                        // Adds (subscribes) him if he is not in the room
-        //                        if (!userIsInRoom) {
-        //                            foundRoom.users.add(user.id);
-        //                            foundRoom.save(function(err, savedRoom) {
-        //                                if (err) return res.status(500).send({message: 'Unable to join the room'});
-        //
-        //                                deferred.resolve(savedRoom);
-        //
-        //                                res.status(200).json({
-        //                                    room: savedRoom,
-        //                                    userId: foundUser.id,
-        //                                    isNew: false
-        //                                });
-        //                            });
-        //                        }
-        //                    }
-        //                });
-        //            });
-        //
-        //            deferred.promise.then(function(savedRoom) {
-        //                // Joins/Subscribes user to the room
-        //                sails.sockets.join(socket, roomName);
-        //                // Broadcast a msg to other users in that room notifying for the new user
-        //                sails.sockets.broadcast(roomName, 'toast', foundUser.name + ' has entered the ' + roomName + ' room', socket);
-        //                // Refreshes every subscriber's user view
-        //                sails.sockets.broadcast(roomName, 'refresh', roomName);
-        //
-        //                Room.subscribe(socket, savedRoom);
-        //            });
-        //        } else {
-        //            res.status(401).send({message: 'Authorization failed'});
-        //        }
-        //    });
-
         async.waterfall([
             // Find user
             function(callback) {
@@ -133,7 +56,7 @@ module.exports = {
                     // Broadcast a msg to other users in that room notifying for the new user
                     sails.sockets.broadcast(roomName, 'toast', user.name + ' has entered the ' + roomName + ' room', socket);
                     // Refreshes every subscriber's user view
-                    sails.sockets.broadcast(roomName, 'refresh-users', roomName);
+                    sails.sockets.broadcast(roomName, 'refresh-users', {data: user, verb: 'joined'}, socket);
 
                     Room.subscribe(socket, room);
                 });
@@ -159,7 +82,7 @@ module.exports = {
 
                             callback(null, {
                                 room: savedRoom,
-                                userId: user.id,
+                                user: user,
                                 isNew: true
                             });
                         });
@@ -178,7 +101,7 @@ module.exports = {
 
                             callback(null, {
                                 room: savedRoom,
-                                userId: user.id,
+                                user: user,
                                 isNew: false
                             });
                         });
@@ -190,7 +113,7 @@ module.exports = {
 
             res.status(200).send({
                 room: result.room,
-                userId: result.userId,
+                user: result.user,
                 isNew: result.isNew
             });
         })
@@ -199,32 +122,6 @@ module.exports = {
     leave: function(req, res) {
         var roomName = req.body.roomName;
         var socket = req.socket;
-
-        //User.findOne({socket: socket.id})
-        //    .populate('rooms', {name: roomName})
-        //    .exec(function(err, user) {
-        //        if (err) return res.status(500).send({message: 'Unexpected error occurred'});
-        //
-        //        if (user) {
-        //            var foundRoom = user.rooms[0];
-        //            if (foundRoom) {
-        //                user.rooms.remove(foundRoom.id);
-        //                user.save(function(err) {
-        //                    if (err) return res.status(500).send({message: 'Unexpected error occurred'});
-        //
-        //                    sails.sockets.leave(socket, roomName);
-        //                    sails.sockets.broadcast(roomName, 'refresh', roomName);
-        //                    sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
-        //
-        //                    Room.unsubscribe(socket, foundRoom);
-        //
-        //                    res.status(200).end();
-        //                });
-        //            }
-        //        } else {
-        //            return res.status(404).send({message: 'Unexpected error occurred'});
-        //        }
-        //    });
 
         async.waterfall([
             // Find user
@@ -264,8 +161,8 @@ module.exports = {
             function(user, room, callback) {
                 if (room !== null && user !== null) {
                     sails.sockets.leave(socket, roomName);
-                    sails.sockets.broadcast(roomName, 'refresh-users', roomName);
-                    sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room');
+                    sails.sockets.broadcast(roomName, 'refresh-users', {data: user, verb: 'left'}, socket);
+                    sails.sockets.broadcast(roomName, 'toast', user.name + ' has left the ' + roomName + ' room', socket);
 
                     Room.unsubscribe(socket, room);
                 }
@@ -309,5 +206,15 @@ module.exports = {
             Room.unsubscribe(req.socket, rooms);
             Room.unwatch(req.socket);
         });
+    },
+
+    userTyping: function(req, res) {
+        var roomName = req.body.roomName;
+        var user = req.body.user;
+        var socket = req.socket;
+
+        sails.sockets.broadcast(roomName, 'user-typing', user, socket);
+
+        res.status(200).end();
     }
 };

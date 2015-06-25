@@ -11,7 +11,7 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state,
     $scope.rooms = [];
 
     // Bind event to room model to listen for room changes
-    io.socket.on('room', refreshRooms);
+    io.socket.on('room', handleRoomChanges);
 
     io.socket.request({
         url: API_URL + '/room',
@@ -41,23 +41,31 @@ angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state,
     // On scope destroy
     $scope.$on('$destroy', function() {
         // Remove event listeners and unsubscribe socket from Model events
-        io.socket.off('room', refreshRooms);
+        io.socket.off('room', handleRoomChanges);
         io.socket.get(API_URL + '/room/unsubscribe');
     });
 
     // Callback function to bind to room model changes
-    function refreshRooms(res) {
-        console.log(res);
+    function handleRoomChanges(res) {
         $scope.$apply(function() {
-            $http.get(API_URL + '/room')
-                .then(function(rooms) {
-                    $scope.rooms = rooms.data;
-                })
-                .catch(function(res) {
-                    console.log('Status code: ' + res.status);
-                    console.log('Status message: ' + res.statusText);
-                    toastr.error('Unexpected error occurred while reloading the rooms', 'Error');
-                });
+            switch (res.verb) {
+                // Room is created
+                case 'created':
+                    $scope.rooms.push(res.data);
+                    break;
+                // Room is deleted
+                case 'destroyed':
+                    $scope.rooms.forEach(function(room, index) {
+                        if (room.id === res.id) {
+                            $scope.rooms.splice(index, 1);
+
+                            return false;
+                        }
+                    });
+                    break;
+                default:
+                    break;
+            }
         });
     }
 });

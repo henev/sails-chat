@@ -19,7 +19,7 @@
                 <li class="divider"></li>
                 <li class="dropdown-header">Room</li>
                 <li class="disabled"><a href="#">Subscribe</a></li>
-                <li ng-if="userId === room.owner.id"><a class="cursor-pointer" ng-click="deleteRoom(room.id)"><span class="text-danger">Delete</span></a></li>
+                <li ng-if="currentUser.id === room.owner.id"><a class="cursor-pointer" ng-click="deleteRoom(room.id)"><span class="text-danger">Delete</span></a></li>
             </ul>
         </div>
     </div>
@@ -36,8 +36,8 @@
         <div ng-repeat="message in messages" class="message-container">
             <div class="clearfix">
                 <div class="text-primary pull-left">
-                    <strong ng-if="userId !== message.owner.id">{{ message.owner.name }}</strong>
-                    <strong ng-if="userId === message.owner.id">Me</strong>
+                    <strong ng-if="currentUser.id !== message.owner.id">{{ message.owner.name }}</strong>
+                    <strong ng-if="currentUser.id === message.owner.id">Me</strong>
                 </div>
 
                 <em class="small pull-right" ng-bind="message.updatedAt | date:' H:m dd/MM'"></em>
@@ -49,11 +49,15 @@
         <p ng-if="!messages.length">There are no messages in this room</p>
     </div>
 
+    <div class="">
+        <div ng-repeat="typingUser in typingUsers" class="small"><strong>{{ typingUser.name }}</strong> is typing</div>
+    </div>
+
     <hr>
 
     <form ng-submit="createMessage()">
         <div class="form-group">
-            <input ng-model="text" class="form-control" type="text" placeholder="Enter your message here">
+            <input ng-change="typeMessage()" ng-model="text" class="form-control" type="text" placeholder="Enter your message here">
         </div>
         <input type="submit" class="btn btn-default" ng-disabled="!text" value="Submit">
     </form>

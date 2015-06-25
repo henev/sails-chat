@@ -7,6 +7,7 @@ module.exports = function(req, res, next) {
 
     var Model = req._sails.models[model];
 
+    console.log(req.params);
     Model
         .findOne(req.params.id)
         .exec(function(err, record) {
