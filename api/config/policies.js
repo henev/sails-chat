@@ -30,7 +30,8 @@ module.exports.policies = {
 
     UserController: {
         login: true,
-        register: true
+        register: true,
+        avatarUpload: ['jwtAuth']
     },
 
     MessageController: {

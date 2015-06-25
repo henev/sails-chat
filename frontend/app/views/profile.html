@@ -1,0 +1,15 @@
+<div class="well">
+    <div>
+        <div></div>
+    </div>
+
+    <hr>
+
+    <form ng-submit="uploadAvatar(avatar)">
+        <div class="form-group">
+            <input type="file" ngf-select ngf-accept="'image/*'" ng-model="avatar" class="btn btn-default">
+            <img ngf-src="avatar[0]" ngf-accept="'image/*'" class="img-thumbnail">
+        </div>
+        <input class="btn btn-primary" type="submit" value="Upload">
+    </form>
+</div>

@@ -25,6 +25,11 @@ angular.module('sailsChatApp')
             })
             .state('logout', {
                 controller: 'LogoutCtrl'
+            })
+            .state('profile', {
+                url: '/profile',
+                templateUrl: '/views/profile.html',
+                controller: 'ProfileCtrl'
             });
 
         $authProvider.loginUrl = API_URL + '/user/login';
