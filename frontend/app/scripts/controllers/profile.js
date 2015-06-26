@@ -15,7 +15,7 @@ angular.module('sailsChatApp').controller('ProfileCtrl', function ($scope, Uploa
                 Upload.upload({
                     url: API_URL + '/user/avatarUpload',
                     file: file,
-                    fileName: 'avatar',
+                    fileName: file.name,
                     fileFormDataName: 'avatar'
                 }).progress(function (evt) {
                     var progressPercentage = parseInt(100.0 * evt.loaded / evt.total);

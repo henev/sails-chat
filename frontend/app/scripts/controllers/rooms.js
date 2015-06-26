@@ -7,31 +7,16 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state, $http, $auth, toastr, API_URL) {
+angular.module('sailsChatApp').controller('RoomsCtrl', function ($scope, $state, RoomService, API_URL) {
     $scope.rooms = [];
 
     // Bind event to room model to listen for room changes
     io.socket.on('room', handleRoomChanges);
 
-    io.socket.request({
-        url: API_URL + '/room',
-        method: 'GET',
-        headers: {
-            authorization: 'Bearer ' + $auth.getToken()
-        }
-    }, function(data, res) {
-        if (res.statusCode === 200) {
-            $scope.$apply(function() {
-                $scope.rooms = data;
-            });
-        } else {
-            console.log('Status code: ' + res.statusCode);
-            console.log('Error message: ' + data.message);
-            toastr.error('Unexpected error occurred while loading the rooms', 'Error');
-        }
-    });
-
-
+    RoomService.getRooms()
+        .then(function(data) {
+            $scope.rooms = data;
+        });
 
     // Enter a already created room or create a new one
     $scope.enterRoom = function(name) {

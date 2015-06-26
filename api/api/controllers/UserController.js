@@ -51,8 +51,10 @@ module.exports = {
     avatarUpload: function(req, res) {
         req.file('avatar').upload({
             // don't allow the total upload size to exceed ~10MB
-            maxBytes: 10000000
+            maxBytes: 10000000,
+            dirname: '../../assets/images'
         }, function whenDone(err, uploadedFiles) {
+            console.log(uploadedFiles);
             if (err) {
 
                 return res.negotiate(err);
