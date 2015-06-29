@@ -7,7 +7,7 @@
  * # MessageService
  * Service in the sailsChatApp.
  */
-angular.module('sailsChatApp').service('MessageService', function ($q, $http, $timeout, $state, toastr, API_URL) {
+angular.module('sailsChatApp').service('MessageService', function ($q, $http, $timeout, $state, $auth, toastr, API_URL) {
     this.getMessagesByRoom = function(roomId) {
         var deferred = $q.defer();
 
@@ -34,5 +34,39 @@ angular.module('sailsChatApp').service('MessageService', function ($q, $http, $t
             });
 
         return deferred.promise;
-    }
+    };
+
+    this.create = function(text, roomId) {
+        io.socket.request({
+            url: API_URL + '/message/create',
+            method: 'POST',
+            headers: {
+                authorization: 'Bearer ' + $auth.getToken()
+            },
+            params: {
+                text: text,
+                roomId: roomId
+            }
+        }, function(data, res) {
+            if (res.statusCode !== 200) {
+                console.log('Status code: ' + res.statusCode);
+                console.log('Error message: ' + data.message);
+                toastr.error(data.message, 'Error');
+            }
+        });
+    };
+
+    this.startTyping = function(roomName, user) {
+        io.socket.request({
+            url: API_URL + '/room/userTyping',
+            method: 'POST',
+            headers: {
+                authorization: 'Bearer ' + $auth.getToken()
+            },
+            params: {
+                roomName: roomName,
+                user: user
+            }
+        });
+    };
 });

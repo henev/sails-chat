@@ -7,7 +7,7 @@
  * # RoomService
  * Service in the sailsChatApp.
  */
-angular.module('sailsChatApp').service('RoomService', function ($q, $auth, toastr, MessageService, $state, RoomEventsService, API_URL) {
+angular.module('sailsChatApp').service('RoomService', function ($q, $auth, $http, toastr, MessageService, $state, RoomEventsService, API_URL) {
     this.getRooms = function() {
         var deferred = $q.defer();
 
@@ -154,5 +154,18 @@ angular.module('sailsChatApp').service('RoomService', function ($q, $auth, toast
         });
 
         return deferred.promise;
+    };
+
+    this.deleteRoom = function(id) {
+        $http.post(API_URL + '/room/destroy', {id: id})
+            .then(function(res) {
+                toastr.success('You have deleted ' + res.data.name);
+                $state.go('rooms');
+            })
+            .catch(function(res) {
+                console.log('Status code: ' + res.status);
+                console.log('Status message: ' + res.statusText);
+                toastr.error('Unexpected error occurred while deleting the room', 'Error');
+            });
     };
 });

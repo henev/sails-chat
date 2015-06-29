@@ -7,7 +7,9 @@
  * # MainCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $location, $window, $http, $state, $timeout, $auth, $filter, toastr, RoomService, RoomEventsService, API_URL) {
+angular.module('sailsChatApp')
+    .controller('RoomCtrl', function ($scope, $location, $timeout, RoomService, MessageService, RoomEventsService) {
+
     $scope.messages = [];
     $scope.users = [];
     $scope.room = {};
@@ -27,57 +29,53 @@ angular.module('sailsChatApp').controller('RoomCtrl', function ($scope, $locatio
     // Bind event listeners
     RoomEventsService.add();
 
+    // Listen for scope changing events from the room event service
+    $scope.$on('addUser', function(event, user) {
+        $scope.users.push(user);
+    });
+
+    $scope.$on('addTypingUser', function(event, user) {
+        $scope.$apply(function() {
+            $scope.typingUsers.push(user);
+        });
+    });
+
+    $scope.$on('removeTypingUser', function(event, index) {
+        $scope.typingUsers.splice(index, 1);
+    });
+
+    $scope.$on('addMessage', function(event, message) {
+        $scope.messages.push(message);
+
+        $timeout(function() {
+            var msgContainer = document.getElementById('messages-container');
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+        });
+    });
+
+    $scope.$on('removeUser', function(event, id) {
+        $scope.users.forEach(function(user, index) {
+            if (user.id === id) {
+                $scope.users.splice(index, 1);
+            }
+        });
+    });
+
+
     // Send a post request to delete the room
     $scope.deleteRoom = function(id) {
-        $http.post(API_URL + '/room/destroy', {id: id})
-            .then(function(res) {
-                toastr.success('You have deleted ' + res.data.name);
-                $state.go('rooms');
-            })
-            .catch(function(res) {
-                console.log('Status code: ' + res.status);
-                console.log('Status message: ' + res.statusText);
-                toastr.error('Unexpected error occurred while deleting the room', 'Error');
-            });
+        RoomService.deleteRoom(id);
     };
 
     // On create message button click
     $scope.createMessage = function() {
-        io.socket.request({
-            url: API_URL + '/message/create',
-            method: 'POST',
-            headers: {
-                authorization: 'Bearer ' + $auth.getToken()
-            },
-            params: {
-                text: $scope.text,
-                roomId: $scope.room.id
-            }
-        }, function(data, res) {
-            if (res.statusCode !== 200) {
-                console.log('Status code: ' + res.statusCode);
-                console.log('Error message: ' + data.message);
-                toastr.error(data.message, 'Error');
-            }
-        });
+        MessageService.create($scope.text, $scope.room.id);
 
         $scope.text = '';
     };
 
     $scope.typeMessage = function() {
-        io.socket.request({
-            url: API_URL + '/room/userTyping',
-            method: 'POST',
-            headers: {
-                authorization: 'Bearer ' + $auth.getToken()
-            },
-            params: {
-                roomName: roomName,
-                user: $scope.currentUser
-            }
-        }, function(data, res) {
-
-        });
+        MessageService.startTyping(roomName, $scope.currentUser)
     };
 
     // On scope destroy
