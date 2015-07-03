@@ -54,53 +54,60 @@ module.exports = {
 
         if (req.method === 'POST') {
 
-            // Start uploading the image
-            req.file('avatar').upload({
-                dirname : process.cwd() + '/assets/images/uploads/'
-            }, function (err, uploadedFiles) {
+            var tempLocation = process.cwd() + '/.tmp/public/images/uploads/';
+
+            // Make sure there is such dir under the .tmp folder
+            // If not -> create one
+            ensureDirExists(tempLocation, 0777, function(err) {
                 if (err) return res.send(500, err);
 
-                // If no files were uploaded, respond with an error.
-                if (uploadedFiles.length === 0) return res.badRequest('No file was uploaded');
+                // Start uploading the image
+                req.file('avatar').upload({
+                    dirname : process.cwd() + '/assets/images/uploads/'
+                }, function (err, uploadedFiles) {
+                    if (err) return res.send(500, err);
 
-                var filename = uploadedFiles[0].fd.substring(uploadedFiles[0].fd.lastIndexOf('/') + 1);
-                var uploadLocation = process.cwd() +'/assets/images/uploads/';
-                var tempLocation = process.cwd() + '/.tmp/public/images/uploads/';
+                    // If no files were uploaded, respond with an error.
+                    if (uploadedFiles.length === 0) return res.badRequest('No file was uploaded');
 
-                //Copy the file to the temp folder so that it becomes available immediately
-                var stream = fs.createReadStream(uploadLocation + filename)
-                    .pipe(fs.createWriteStream(tempLocation + filename));
+                    var filename = uploadedFiles[0].fd.substring(uploadedFiles[0].fd.lastIndexOf('/') + 1);
+                    var uploadLocation = process.cwd() +'/assets/images/uploads/';
 
-                // Handle errors from the file stream
-                stream.on('error', function (error) {
-                    console.log("Caught", error);
-                });
+                    //Copy the file to the temp folder so that it becomes available immediately
+                    var stream = fs.createReadStream(uploadLocation + filename)
+                        .pipe(fs.createWriteStream(tempLocation + filename));
 
-                // Find the user
-                User
-                    .findOne({id: req.userId})
-                    .exec(function (err, foundUser) {
-                        if (err) return res.send(500, err);
+                    // Handle errors from the file stream
+                    stream.on('error', function (error) {
+                        console.log("Caught", error);
+                    });
 
-                        // Delete the old file
-                        var oldFile = foundUser.avatarUrl.substring(foundUser.avatarUrl.lastIndexOf('/') + 1);
-                        var deleteLocation = uploadLocation + oldFile;
-                        fs.unlink(deleteLocation, function (err) {
-                            if (err) throw err;
+                    // Find the user
+                    User
+                        .findOne({id: req.userId})
+                        .exec(function (err, foundUser) {
+                            if (err) return res.send(500, err);
 
-                            // Set a new avatar url to the user model
-                            foundUser.avatarUrl = util.format('%s/images/uploads/%s', sails.getBaseUrl(), filename);
-                            foundUser.save(function(err, user) {
-                                if (err) return res.send(500, err);
+                            // Delete the old file
+                            var oldFile = foundUser.avatarUrl.substring(foundUser.avatarUrl.lastIndexOf('/') + 1);
+                            var deleteLocation = uploadLocation + oldFile;
+                            fs.unlink(deleteLocation, function (err) {
+                                if (err) throw err;
 
-                                // Return the avatar image url
-                                return res.status(200).send({
-                                    avatarUrl: user.avatarUrl
+                                // Set a new avatar url to the user model
+                                foundUser.avatarUrl = util.format('%s/images/uploads/%s', sails.getBaseUrl(), filename);
+                                foundUser.save(function(err, user) {
+                                    if (err) return res.send(500, err);
+
+                                    // Return the avatar image url
+                                    return res.status(200).send({
+                                        avatarUrl: user.avatarUrl
+                                    });
                                 });
                             });
-                        });
 
-                    });
+                        });
+                });
             });
 
         } else {
