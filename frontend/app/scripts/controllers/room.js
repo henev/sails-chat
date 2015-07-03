@@ -61,6 +61,17 @@ angular.module('sailsChatApp')
         });
     });
 
+    // Update the user's avatar when he uploads a new picture
+    $scope.$on('updateUserAvatar', function(event, user) {
+        $scope.$apply(function() {
+            $scope.messages.forEach(function(message, index) {
+                if (message.owner.id === user.id) {
+                    $scope.messages[index].owner.avatarUrl = user.avatarUrl;
+                }
+            });
+        });
+
+    });
 
     // Send a post request to delete the room
     $scope.deleteRoom = function(id) {

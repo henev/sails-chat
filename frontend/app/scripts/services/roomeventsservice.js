@@ -14,6 +14,7 @@ angular.module('sailsChatApp').service('RoomEventsService', function ($rootScope
         io.socket.on('room', refreshMessages);
         io.socket.on('destroy-room', roomDestroyed);
         io.socket.on('user-typing', userTyping);
+        io.socket.on('user-avatar-changed', userAvatarChanged);
     };
 
     this.remove = function() {
@@ -22,6 +23,7 @@ angular.module('sailsChatApp').service('RoomEventsService', function ($rootScope
         io.socket.off('room', refreshMessages);
         io.socket.off('destroy-room', roomDestroyed);
         io.socket.off('user-typing', userTyping);
+        io.socket.off('user-avatar-changed', userAvatarChanged);
     };
 
     // Callback function to bind to new toast event
@@ -130,5 +132,9 @@ angular.module('sailsChatApp').service('RoomEventsService', function ($rootScope
                 }, 1000);
             }
         }
+    }
+
+    function userAvatarChanged(res) {
+        $rootScope.$broadcast('updateUserAvatar', res);
     }
 });

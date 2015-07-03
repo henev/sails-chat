@@ -100,6 +100,11 @@ module.exports = {
                                 foundUser.save(function(err, user) {
                                     if (err) return res.send(500, err);
 
+                                    sails.sockets.blast('user-avatar-changed', {
+                                        id: user.id,
+                                        avatarUrl: user.avatarUrl
+                                    });
+
                                     // Return the avatar image url
                                     return res.status(200).send({
                                         avatarUrl: user.avatarUrl
