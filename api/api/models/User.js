@@ -17,7 +17,6 @@ module.exports = {
             via: 'users'
         },
         avatarUrl: 'string',
-        avatarFd: 'string',
 
         toJSON: function() {
             var user = this.toObject();

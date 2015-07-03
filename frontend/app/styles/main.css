@@ -86,12 +86,11 @@ body {
     border-top: 1px solid #ddd;
     padding-top: 5px;
     margin-top: 5px;
+    position: relative;
 }
 
 .message-container:first-of-type {
     border: none;
-    padding-top: 0;
-    margin-top: 0;
 }
 
 #messages-container {
@@ -106,4 +105,24 @@ body {
 .img-thumbnail {
     max-height: 100px;
     max-width: 100px;
+}
+
+.img-rounded {
+    max-height: 200px;
+    max-width: 200px;
+}
+
+.message-avatar {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+}
+
+.message-avatar .img-circle {
+    height: 40px;
+    width: 40px;
+}
+
+.message-info {
+    margin-left: 55px;
 }

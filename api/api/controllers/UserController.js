@@ -7,6 +7,8 @@
 
 var request = require('request');
 var bcrypt = require('bcrypt-nodejs');
+var fs = require('fs');
+var util = require('util');
 
 module.exports = {
 
@@ -48,39 +50,74 @@ module.exports = {
         });
     },
 
-    avatarUpload: function(req, res) {
-        req.file('avatar').upload({
-            // don't allow the total upload size to exceed ~10MB
-            maxBytes: 10000000,
-            dirname: '../../assets/images'
-        }, function whenDone(err, uploadedFiles) {
-            console.log(uploadedFiles);
-            if (err) {
+    avatarUpload: function(req, res){
 
-                return res.negotiate(err);
-            }
+        if (req.method === 'POST') {
 
-            // If no files were uploaded, respond with an error.
-            if (uploadedFiles.length === 0) {
+            // Start uploading the image
+            req.file('avatar').upload({
+                dirname : process.cwd() + '/assets/images/uploads/'
+            }, function (err, uploadedFiles) {
+                if (err) return res.send(500, err);
 
-                return res.badRequest('No file was uploaded');
-            }
+                // If no files were uploaded, respond with an error.
+                if (uploadedFiles.length === 0) return res.badRequest('No file was uploaded');
 
-            // Save the "fd" and the url where the avatar for a user can be accessed
-            User
-                .update(req.userId, {
+                var filename = uploadedFiles[0].fd.substring(uploadedFiles[0].fd.lastIndexOf('/') + 1);
+                var uploadLocation = process.cwd() +'/assets/images/uploads/';
+                var tempLocation = process.cwd() + '/.tmp/public/images/uploads/';
 
-                    // Generate a unique URL where the avatar can be downloaded.
-                    avatarUrl: require('util').format('%s/user/avatar/%s', sails.getBaseUrl(), req.userId),
+                //Copy the file to the temp folder so that it becomes available immediately
+                var stream = fs.createReadStream(uploadLocation + filename)
+                    .pipe(fs.createWriteStream(tempLocation + filename));
 
-                    // Grab the first file and use it's `fd` (file descriptor)
-                    avatarFd: uploadedFiles[0].fd
-                })
-                .exec(function (err){
-                    if (err) return res.negotiate(err);
-                    return res.ok();
+                // Handle errors from the file stream
+                stream.on('error', function (error) {
+                    console.log("Caught", error);
                 });
-        });
+
+                // Find the user
+                User
+                    .findOne({id: req.userId})
+                    .exec(function (err, foundUser) {
+                        if (err) return res.send(500, err);
+
+                        // Delete the old file
+                        var oldFile = foundUser.avatarUrl.substring(foundUser.avatarUrl.lastIndexOf('/') + 1);
+                        var deleteLocation = uploadLocation + oldFile;
+                        fs.unlink(deleteLocation, function (err) {
+                            if (err) throw err;
+
+                            // Set a new avatar url to the user model
+                            foundUser.avatarUrl = util.format('%s/images/uploads/%s', sails.getBaseUrl(), filename);
+                            foundUser.save(function(err, user) {
+                                if (err) return res.send(500, err);
+
+                                // Return the avatar image url
+                                return res.status(200).send({
+                                    avatarUrl: user.avatarUrl
+                                });
+                            });
+                        });
+
+                    });
+            });
+
+        } else {
+
+            res.ok();
+
+        }
+    },
+
+    byJwt: function(req, res) {
+        User
+            .findOne({id: req.userId})
+            .exec(function(err, user) {
+                if (err) return res.send(500, err);
+
+                res.status(200).json(user);
+            });
     }
 
 };

@@ -7,7 +7,17 @@
  * # ProfileCtrl
  * Controller of the sailsChatApp
  */
-angular.module('sailsChatApp').controller('ProfileCtrl', function ($scope, Upload, API_URL) {
+angular.module('sailsChatApp').controller('ProfileCtrl', function ($scope, $http, Upload, toastr, API_URL) {
+    $scope.user = {};
+
+    $http.get(API_URL + '/user/byJwt')
+        .then(function(res) {
+            $scope.user = res.data;
+        })
+        .catch(function(res) {
+
+        });
+
     $scope.uploadAvatar = function(files) {
         if (files && files.length) {
             for (var i = 0; i < files.length; i++) {
@@ -21,7 +31,9 @@ angular.module('sailsChatApp').controller('ProfileCtrl', function ($scope, Uploa
                     var progressPercentage = parseInt(100.0 * evt.loaded / evt.total);
                     console.log('progress: ' + progressPercentage + '% ' + evt.config.file.name);
                 }).success(function (data, status, headers, config) {
-                    console.log('file ' + config.file.name + 'uploaded. Response: ' + data);
+                    $scope.avatar[0] = null;
+                    $scope.user.avatarUrl = data.avatarUrl;
+                    toastr.success('You now have a new avatar', 'Upload successful');
                 });
             }
         }

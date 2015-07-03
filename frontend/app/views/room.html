@@ -34,16 +34,22 @@
 
     <div id="messages-container">
         <div ng-repeat="message in messages" class="message-container">
-            <div class="clearfix">
-                <div class="text-primary pull-left">
-                    <strong ng-if="currentUser.id !== message.owner.id">{{ message.owner.name }}</strong>
-                    <strong ng-if="currentUser.id === message.owner.id">Me</strong>
-                </div>
-
-                <em class="small pull-right" ng-bind="message.updatedAt | date:' H:m dd/MM'"></em>
+            <div class="message-avatar">
+                <img ng-if="message.owner.avatarUrl" src="{{ message.owner.avatarUrl }}" class="img-circle">
             </div>
 
-            <div class="text-justify">{{ message.text }}</div>
+            <div class="message-info">
+                <div class="clearfix">
+                    <div class="text-primary pull-left">
+                        <strong ng-if="currentUser.id !== message.owner.id">{{ message.owner.name }}</strong>
+                        <strong ng-if="currentUser.id === message.owner.id">Me</strong>
+                    </div>
+
+                    <em class="small pull-right" ng-bind="message.updatedAt | date:' H:m dd/MM'"></em>
+                </div>
+
+                <div class="text-justify">{{ message.text }}</div>
+            </div>
 
         </div>
         <p ng-if="!messages.length">There are no messages in this room</p>
