@@ -9,6 +9,7 @@ var request = require('request');
 var bcrypt = require('bcrypt-nodejs');
 var fs = require('fs');
 var util = require('util');
+var mkdirp = require('mkdirp');
 
 module.exports = {
 
@@ -58,7 +59,7 @@ module.exports = {
 
             // Make sure there is such dir under the .tmp folder
             // If not -> create one
-            ensureDirExists(tempLocation, 0777, function(err) {
+            mkdirp(tempLocation, function(err) {
                 if (err) return res.send(500, err);
 
                 // Start uploading the image
