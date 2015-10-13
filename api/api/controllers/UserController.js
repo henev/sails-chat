@@ -90,28 +90,16 @@ module.exports = {
                             if (err) return res.send(500, err);
 
                             // Delete the old file
-                            var oldFile = foundUser.avatarUrl.substring(foundUser.avatarUrl.lastIndexOf('/') + 1);
-                            var deleteLocation = uploadLocation + oldFile;
-                            fs.unlink(deleteLocation, function (err) {
-                                if (err) throw err;
-
-                                // Set a new avatar url to the user model
-                                foundUser.avatarUrl = util.format('%s/images/uploads/%s', sails.getBaseUrl(), filename);
-                                foundUser.save(function(err, user) {
-                                    if (err) return res.send(500, err);
-
-                                    sails.sockets.blast('user-avatar-changed', {
-                                        id: user.id,
-                                        avatarUrl: user.avatarUrl
-                                    });
-
-                                    // Return the avatar image url
-                                    return res.status(200).send({
-                                        avatarUrl: user.avatarUrl
-                                    });
-                                });
-                            });
-
+														if (foundUser.avatarUrl) {
+															var oldFile = foundUser.avatarUrl.substring(foundUser.avatarUrl.lastIndexOf('/') + 1);
+                            	var deleteLocation = uploadLocation + oldFile;
+															fs.unlink(deleteLocation, function (err) {
+                               if (err) throw err;
+                                saveNewPorfilePicture(foundUser, res, filename);
+                            	});
+														} else {
+															saveNewPorfilePicture(foundUser, res, filename);
+														}
                         });
                 });
             });
@@ -134,3 +122,21 @@ module.exports = {
     }
 
 };
+
+function saveNewPorfilePicture(user, res, filename) {
+	// Set a new avatar url to the user model
+	user.avatarUrl = util.format('%s/images/uploads/%s', sails.getBaseUrl(), filename);
+	user.save(function (err, user) {
+		if (err) return res.send(500, err);
+
+		sails.sockets.blast('user-avatar-changed', {
+			id: user.id,
+			avatarUrl: user.avatarUrl
+		});
+
+		// Return the avatar image url
+		return res.status(200).send({
+			avatarUrl: user.avatarUrl
+		});
+	});
+}
