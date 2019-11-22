@@ -1,4 +1,4 @@
-# Realtime chat system
+# [LEGACY] Realtime chat system
 
 ## About
 
